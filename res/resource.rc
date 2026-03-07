@@ -1,0 +1,7 @@
+#include "resource.h"
+
+IDI_LOGO ICON        "../pages/public/logo.ico"
+IDD_LOGO RCDATA      "../pages/public/logo.ico"
+1000     RCDATA      "../pages/dist/index.html"
+1001     RCDATA      "../pages/public/1001.jpg"
+1002     RCDATA      "../pages/public/1002.jpg"

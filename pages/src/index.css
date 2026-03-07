@@ -1,0 +1,12 @@
+div {
+  transition: all 0.3s ease-in-out;
+  display: flex;
+  box-sizing: border-box;
+  user-select: none;
+  font-size: 13px;
+}
+
+img {
+  box-sizing: border-box;
+  -webkit-user-drag: none;
+}

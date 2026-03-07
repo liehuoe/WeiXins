@@ -1,0 +1,53 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: 'latest'
+        cache: 'npm'
+        cache-dependency-path: pages/package-lock.json
+
+    - name: Build Vite project (pages)
+      run: |
+        cd pages
+        npm ci
+        npm run build
+
+    - name: Install CMake (if needed)
+      uses: lukka/get-cmake@latest
+
+    - name: Configure and Build
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=Release
+        cmake --build build --config Release
+
+    - name: Create ZIP package
+      run: |
+        $tag = "${{ github.ref_name }}"
+        $exePath = "build\Release\WeiXins.exe"
+        $zipName = "WeiXins-$tag-win-x64.zip"
+        Compress-Archive -Path $exePath -DestinationPath $zipName
+        echo "ARTIFACT_NAME=$zipName" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+    - name: Publish to Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v2
+      with:
+        files: ${{ env.ARTIFACT_NAME }}
+        draft: false
+        prerelease: false
+        generate_release_notes: true

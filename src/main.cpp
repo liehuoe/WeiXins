@@ -30,7 +30,7 @@ int ShowLoginDlg() {
             if (ext == "head_img") {
                 try {
                     ctx.SetHeaders(std::string{ctx.GetContentType("jpg")});
-                    ctx.SetResponse((JsMsg::kConfigPath / name / "logo.jpg").string());
+                    ctx.SetResponse((JsMsg::kConfigPath / name / "logo.jpg").u8string());
                     return;
                 } catch (...) {
                     name = "logo";  // 退化为加载默认logo
@@ -73,7 +73,7 @@ int ShowLoginDlg() {
             auto pos = urlv.find_last_of('/') + 1;
             std::string dir{urlv.substr(pos, urlv.find(".head_img", pos + 1) - pos)};
             try {
-                ctx.SetResponse((JsMsg::kConfigPath / dir / "logo.jpg").string());
+                ctx.SetResponse((JsMsg::kConfigPath / dir / "logo.jpg").u8string());
                 ctx.SetHeaders(std::string{ctx.GetContentType("jpg")});
             } catch (...) {
                 HINSTANCE hinst = GetModuleHandle(nullptr);

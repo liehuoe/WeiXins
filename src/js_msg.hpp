@@ -11,7 +11,7 @@ class JsMsg {
     static std::filesystem::path GetConfigDir() {
         wchar_t buffer[MAX_PATH]{};
         GetModuleFileNameW(NULL, buffer, MAX_PATH - 1);
-        std::filesystem::path dir = cxxui::detail::W2U8(buffer);
+        std::filesystem::path dir = buffer;
         return dir.remove_filename() / "users";
     }
     static std::filesystem::path GetWeiXinDir() {
@@ -20,7 +20,7 @@ class JsMsg {
         if (FAILED(hr)) {
             return "";
         }
-        std::filesystem::path dir = cxxui::detail::W2U8(path);
+        std::filesystem::path dir = path;
         CoTaskMemFree(path);
         return dir / "Documents/xwechat_files/all_users";
     }
@@ -43,7 +43,7 @@ public:
     /** 更新配置文件到微信/程序 */
     static void UpdateConfig(std::string_view cfg_item, bool to_weixin = true) {
         namespace fs = std::filesystem;
-        fs::path cfg_dir = kConfigPath / cfg_item;
+        fs::path cfg_dir = kConfigPath / cxxui::detail::U82W(cfg_item);
         if (!fs::exists(cfg_dir)) {
             fs::create_directories(cfg_dir);
         }

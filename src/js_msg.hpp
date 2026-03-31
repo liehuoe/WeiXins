@@ -59,10 +59,11 @@ public:
         for (const auto file : kFileList) {
             fs::path src = src_dir / file;
             fs::path dst = dst_dir / file;
+            if (fs::exists(dst)) {
+                fs::remove(dst);
+            }
             if (fs::exists(src)) {
                 CopyFileExW(src.c_str(), dst.c_str(), nullptr, nullptr, nullptr, 0);
-            } else {
-                fs::remove(dst);
             }
         }
     }

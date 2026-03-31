@@ -148,7 +148,7 @@ void LaunchWeiXin() {
             reinterpret_cast<LPARAM>(&data));
         if (data.count == 0) {
             return;  // 微信退出
-        } else if (data.count <= 5) {
+        } else if (data.count <= 6) {
             continue;  // 微信登录中
         }
         break;

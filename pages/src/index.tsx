@@ -2,15 +2,13 @@
 import "virtual:uno.css";
 import "./index.css";
 import { render } from "solid-js/web";
-import { lazy } from "solid-js";
+import login from "./login";
 
 // 禁止拖拽文件到窗口
 document.addEventListener("dragover", (e) => e.preventDefault());
 document.addEventListener("drop", (e) => e.preventDefault());
 
-const route = {
-  login: lazy(() => import("./login")),
-};
+const route = { login };
 
 const dom = document.getElementById("app")!;
 const name = new URLSearchParams(window.location.search).get("page");

@@ -20,12 +20,13 @@ function ContextMenu(props: { when?: boolean; children: any }) {
   return (
     <div
       ref={(el) => (menuDom = el)}
-      class="z-102 border-rd-2 py-1 bg-gray-100 fixed shadow-dark shadow-lg flex-col"
+      class="z-102 border-rd-2 py-1 bg-gray-100 fixed shadow-dark shadow-lg flex-col
+      dark:shadow-black dark:bg-dark-100 dark:color-light"
       style={{
-        left: menuPos()?.x ? menuPos()!.x + "px" : "-100%",
-        top: menuPos()?.y ? menuPos()!.y + "px" : "-100%",
+        left: (menuPos()?.x || 0) + "px",
+        top: (menuPos()?.y || 0) + "px",
         visibility:
-          menuPos() && (props.when === undefined ? true : props.when)
+          menuPos() && (props.when === undefined || props.when)
             ? "visible"
             : "hidden",
       }}
@@ -42,7 +43,8 @@ function MenuItem(props: {
 }) {
   return (
     <div
-      class="gap-1 px-2 py-1 hover:bg-gray-300 whitespace-nowrap"
+      class="gap-1 px-2 py-1 hover:bg-gray-300 whitespace-nowrap items-center
+      dark:hover:bg-dark-300"
       onclick={props.onClick}
     >
       <div class={`text-lg ${props.icon}`} />

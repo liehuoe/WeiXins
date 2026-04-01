@@ -1,9 +1,8 @@
 div {
-  transition: all 0.3s ease-in-out;
+  font-size: 13px;
+  user-select: none;
   display: flex;
   box-sizing: border-box;
-  user-select: none;
-  font-size: 13px;
 }
 
 img {

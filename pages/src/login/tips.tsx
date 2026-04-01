@@ -41,7 +41,10 @@ function Tips() {
       >
         <For each={tips()}>
           {(tip) => (
-            <div class="gap-1 px-2 py-1 border-rd-2 shadow-dark shadow-md bg-gray-100 items-center">
+            <div
+              class="gap-1 px-2 py-1 border-rd-2 shadow-dark shadow-md bg-gray-100 items-center
+              dark:shadow-black dark:bg-dark-100 dark:color-light"
+            >
               <Show when={tip.icon}>
                 <div class={`text-lg ${tip.icon}`} />
               </Show>

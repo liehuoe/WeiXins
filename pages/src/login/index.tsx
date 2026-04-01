@@ -22,16 +22,14 @@ export default function Login() {
     onContextMenu?: (e: MouseEvent) => void;
   }) {
     return (
-      <div class="w-full">
-        <button
-          ref={props.ref}
-          class={`w-full border-none flex items-center border-rd-2 p-1 gap-1 ${props.class}`}
-          onclick={props.onClick}
-          oncontextmenu={props.onContextMenu}
-        >
-          {props.children}
-        </button>
-      </div>
+      <button
+        ref={props.ref}
+        class={`transition-all w-full border-none flex items-center border-rd-2 p-1 gap-1 ${props.class}`}
+        onclick={props.onClick}
+        oncontextmenu={props.onContextMenu}
+      >
+        {props.children}
+      </button>
     );
   }
   const [selUser, setSelUser] = createSignal<User | null>(null);
@@ -39,7 +37,8 @@ export default function Login() {
     return (
       <Item
         ref={(el) => data.userDoms.push(el)}
-        class="bg-green shadow-dark shadow-2xl hover:bg-op-70 cursor-pointer"
+        class="bg-green shadow-dark shadow-2xl hover:shadow-lg hover:bg-op-70 cursor-pointer
+        dark:shadow-black"
         onClick={() => data.login(props.user)}
         onContextMenu={(e) => {
           e.preventDefault();
@@ -148,17 +147,14 @@ export default function Login() {
             <p />
             <div>商业合作请加微信</div>
             <img class="max-w-1/2 max-h-1/3" src="/1001.jpg" />
-            <div>程序版本：1.0.1</div>
+            <div>程序版本：1.0.3</div>
           </div>
         </Show>
       </Transition>
     );
   }
   return (
-    <div
-      class="h-full p-1 gap-1 flex-col"
-      oncontextmenu={() => setSelUser(null)}
-    >
+    <>
       <Show
         when={data.users?.length}
         fallback={
@@ -167,36 +163,38 @@ export default function Login() {
           </EmptyText>
         }
       >
-        <TransitionGroup
-          onEnter={(el, done) => {
-            const a = el.animate(
-              [
-                { opacity: 0, transform: "translateY(-100%)" },
-                { opacity: 1, transform: "translateY(0)" },
-              ],
-              {
-                duration: 300,
-                easing: "ease-in-out",
-              },
-            );
-            a.finished.then(done);
-          }}
-          onExit={(el, done) => {
-            const a = el.animate(
-              [
-                { opacity: 1, transform: "translateY(0)" },
-                { opacity: 0, transform: "translateY(-100%)" },
-              ],
-              {
-                duration: 300,
-                easing: "ease-in-out",
-              },
-            );
-            a.finished.then(done);
-          }}
-        >
-          <For each={data.users}>{(user) => <ReadItem user={user} />}</For>
-        </TransitionGroup>
+        <div class="p-1 gap-1 flex-col" oncontextmenu={() => setSelUser(null)}>
+          <TransitionGroup
+            onEnter={(el, done) => {
+              const a = el.animate(
+                [
+                  { opacity: 0, transform: "translateY(-100%)" },
+                  { opacity: 1, transform: "translateY(0)" },
+                ],
+                {
+                  duration: 300,
+                  easing: "ease-in-out",
+                },
+              );
+              a.finished.then(done);
+            }}
+            onExit={(el, done) => {
+              const a = el.animate(
+                [
+                  { opacity: 1, transform: "translateY(0)" },
+                  { opacity: 0, transform: "translateY(-100%)" },
+                ],
+                {
+                  duration: 300,
+                  easing: "ease-in-out",
+                },
+              );
+              a.finished.then(done);
+            }}
+          >
+            <For each={data.users}>{(user) => <ReadItem user={user} />}</For>
+          </TransitionGroup>
+        </div>
       </Show>
       <EditItem />
       <ContextMenu when={data.status === Status.Normal}>
@@ -219,7 +217,10 @@ export default function Login() {
         </MenuItem>
         <MenuItem
           icon="i-mdi-add bg-blue"
-          onClick={() => (data.status = Status.Edit)}
+          onClick={() => {
+            setSelUser(null);
+            data.status = Status.Edit;
+          }}
         >
           添加账号
         </MenuItem>
@@ -232,6 +233,6 @@ export default function Login() {
       </ContextMenu>
       <Tips />
       <About />
-    </div>
+    </>
   );
 }

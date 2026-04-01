@@ -5,10 +5,29 @@
 #include "resource.h"
 #include "js_msg.hpp"
 
+class WeiXinWindow : public cxxui::WebWindow<WeiXinWindow> {
+public:
+    using cxxui::WebWindow<WeiXinWindow>::WebWindow;
+    void OnSetting(const cxxui::SettingEvent& event) {
+        if (event.IsColorThemeChanged()) {
+            UseDarkMode();
+        }
+        cxxui::WebWindow<WeiXinWindow>::OnSetting(event);
+    }
+    void UseDarkMode() noexcept {
+        auto color = cxxui::IsDarkMode() ? cxxui::Color{34, 34, 34} : cxxui::Color{246, 246, 246};
+        try {
+            SetTitleColor(color);
+        } catch (...) {
+            // ignore
+        }
+    }
+};
+
 int ShowLoginDlg() {
-    cxxui::WebWindow win{
-        cxxui::WindowOptions().SetTitle("微信多开助手").SetWidth(300).SetHeight(400)};
+    WeiXinWindow win{cxxui::WindowOptions().SetTitle("微信多开助手").SetWidth(300).SetHeight(400)};
     win.SetIcon(IDI_LOGO);
+    win.UseDarkMode();
     win.WaitWebCreated();
 
     JsMsg msg;

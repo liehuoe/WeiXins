@@ -155,46 +155,45 @@ export default function Login() {
   }
   return (
     <>
-      <Show
-        when={data.users?.length}
-        fallback={
-          <EmptyText>
-            {data.users ? "单击右键添加账号" : "正在加载数据"}
-          </EmptyText>
-        }
+      <div
+        class="z-2 p-1 gap-1 flex-col"
+        oncontextmenu={() => setSelUser(null)}
       >
-        <div class="p-1 gap-1 flex-col" oncontextmenu={() => setSelUser(null)}>
-          <TransitionGroup
-            onEnter={(el, done) => {
-              const a = el.animate(
-                [
-                  { opacity: 0, transform: "translateY(-100%)" },
-                  { opacity: 1, transform: "translateY(0)" },
-                ],
-                {
-                  duration: 300,
-                  easing: "ease-in-out",
-                },
-              );
-              a.finished.then(done);
-            }}
-            onExit={(el, done) => {
-              const a = el.animate(
-                [
-                  { opacity: 1, transform: "translateY(0)" },
-                  { opacity: 0, transform: "translateY(-100%)" },
-                ],
-                {
-                  duration: 300,
-                  easing: "ease-in-out",
-                },
-              );
-              a.finished.then(done);
-            }}
-          >
-            <For each={data.users}>{(user) => <ReadItem user={user} />}</For>
-          </TransitionGroup>
-        </div>
+        <TransitionGroup
+          onEnter={(el, done) => {
+            const a = el.animate(
+              [
+                { opacity: 0, transform: "translateY(-100%)" },
+                { opacity: 1, transform: "translateY(0)" },
+              ],
+              {
+                duration: 300,
+                easing: "ease-in-out",
+              },
+            );
+            a.finished.then(done);
+          }}
+          onExit={(el, done) => {
+            const a = el.animate(
+              [
+                { opacity: 1, transform: "translateY(0)" },
+                { opacity: 0, transform: "translateY(-100%)" },
+              ],
+              {
+                duration: 300,
+                easing: "ease-in-out",
+              },
+            );
+            a.finished.then(done);
+          }}
+        >
+          <For each={data.users}>{(user) => <ReadItem user={user} />}</For>
+        </TransitionGroup>
+      </div>
+      <Show when={!data.users?.length}>
+        <EmptyText>
+          {data.users ? "单击右键添加账号" : "正在加载数据"}
+        </EmptyText>
       </Show>
       <EditItem />
       <ContextMenu when={data.status === Status.Normal}>

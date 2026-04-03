@@ -1,40 +1,17 @@
-#include <winsock2.h>
-#include <fstream>
 #include <charconv>
-#include <cxxui/web_win.hpp>
-#include "resource.h"
+#include "weixin_win.hpp"
 #include "js_msg.hpp"
-
-class WeiXinWindow : public cxxui::WebWindow<WeiXinWindow> {
-public:
-    using cxxui::WebWindow<WeiXinWindow>::WebWindow;
-    void OnSetting(const cxxui::SettingEvent& event) {
-        if (event.IsColorThemeChanged()) {
-            UseDarkMode();
-        }
-        cxxui::WebWindow<WeiXinWindow>::OnSetting(event);
-    }
-    void UseDarkMode() noexcept {
-        auto color = cxxui::IsDarkMode() ? cxxui::Color{34, 34, 34} : cxxui::Color{246, 246, 246};
-        try {
-            SetTitleColor(color);
-        } catch (...) {
-            // ignore
-        }
-    }
-};
 
 int ShowLoginDlg() {
     WeiXinWindow win{cxxui::WindowOptions().SetTitle("微信多开助手").SetWidth(300).SetHeight(400)};
-    win.SetIcon(IDI_LOGO);
-    win.UseDarkMode();
     win.WaitWebCreated();
+    win.SetBackground({});  // 不显示webview背景
 
-    JsMsg msg;
-    win.SetJsMsgHandler(msg.GetHandler());
+    JsMsg msg{win};
+    win.OnJsMsg(msg.GetHandler());
 #ifndef _DEBUG
     // 处理资源请求
-    win.SetRequestHandler([](cxxui::RequestContext& ctx) {
+    win.OnWebRequest([](cxxui::WebRequest& ctx) {
         auto url = ctx.GetUrl();
         std::string_view urlv = url;
         urlv.remove_prefix((std::min)(9, static_cast<int>(urlv.size())));  // http://./
@@ -85,8 +62,8 @@ int ShowLoginDlg() {
     });
 #else
     // 处理资源请求
-    win.SetRequestHandler(
-        [](cxxui::RequestContext& ctx) {
+    win.OnWebRequest(
+        [](cxxui::WebRequest& ctx) {
             auto url = ctx.GetUrl();
             std::string_view urlv = url;
             auto pos = urlv.find_last_of('/') + 1;

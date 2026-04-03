@@ -4,6 +4,7 @@
 #include <shlobj.h>
 #include <cxxui/win.hpp>
 #include <cxxui/web_win/js_msg_map.hpp>
+#include "weixin_win.hpp"
 #include "weixin.hpp"
 
 class JsMsg {
@@ -26,9 +27,10 @@ class JsMsg {
     }
 
 public:
-    JsMsg() {
+    JsMsg(WeiXinWindow& win)
+        : win_(win) {
         map_.bind("/user/get", OnUserGet);
-        map_.bind("/user/login", OnUserLogin);
+        map_.bind("/user/login", [this](cxxui::json& arg) { return OnUserLogin(arg); });
         map_.bind("/user/set", OnUserSet);
     }
     std::function<std::string(std::string)> GetHandler() const noexcept {
@@ -69,12 +71,13 @@ public:
     }
 
 private:
+    WeiXinWindow& win_;
     cxxui::JsMsgMap<> map_;
     static cxxui::json OnUserGet(cxxui::json&) {
         return cxxui::json::parse(std::ifstream{kConfigPath / kConfigFile});
     }
 
-    static cxxui::json OnUserLogin(cxxui::json& arg) {
+    cxxui::json OnUserLogin(cxxui::json& arg) {
         namespace fs = std::filesystem;
         // 拷贝用户配置
         login_dir = arg.at("dir").get<std::string>();
@@ -84,6 +87,7 @@ private:
         if (fs::exists(head_imgs)) {
             fs::remove_all(kWeiXinDir / "head_imgs");
         }
+        win_.Show(false);  // 解决闪烁问题
         cxxui::Exit(100);  // 返回100代表登录
         return nullptr;
     }

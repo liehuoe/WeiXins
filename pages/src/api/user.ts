@@ -18,5 +18,11 @@ class Api extends ApiBase implements User {
   @Set("修改账号列表") async set(arg: User[]): Promise<void> {
     return await this.send(arg);
   }
+  @Get("获取当前登录微信目录") async getLoginDirs(): Promise<string[]> {
+    return await this.send();
+  }
+  @Set("切换微信窗口") async setIndex(arg: number): Promise<void> {
+    return await this.send(arg);
+  }
 }
 export const user = Api.prototype;

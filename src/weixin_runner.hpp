@@ -8,14 +8,34 @@
 
 #pragma comment(lib, "Advapi32.lib")
 
-class WeiXin {
+class ProcessData {
+public:
+    ProcessData(DWORD pid, HANDLE process, HANDLE thread)
+        : pid_(pid),
+          process_(process),
+          thread_(thread) {}
+    ~ProcessData() {
+        CloseHandle(process_);
+        CloseHandle(thread_);
+    }
+    DWORD GetPid() const noexcept { return pid_; }
+    HANDLE GetProcess() const noexcept { return process_; }
+    HANDLE GetThread() const noexcept { return thread_; }
+
+private:
+    DWORD pid_;
+    HANDLE process_;
+    HANDLE thread_;
+};
+
+class WeiXinRunner {
 public:
 #ifdef UNICODE
     using String = std::wstring;
 #else
     using String = std::string;
 #endif
-    WeiXin() {
+    WeiXinRunner() {
         struct RegKey {
             HKEY value;
             RegKey() {
@@ -81,20 +101,24 @@ public:
         if (!InitializeAcl(acl.value, acl.Size(), ACL_REVISION)) {
             throw std::runtime_error("InitializeAcl failed");
         }
-        AddAccessDeniedAce(acl.value, ACL_REVISION, MUTEX_ALL_ACCESS, sid.value);
-        SetSecurityInfo(mutex.value,
-                        SE_KERNEL_OBJECT,
-                        DACL_SECURITY_INFORMATION,
-                        nullptr,
-                        nullptr,
-                        acl.value,
-                        nullptr);
+        if (!AddAccessDeniedAce(acl.value, ACL_REVISION, MUTEX_ALL_ACCESS, sid.value)) {
+            throw std::runtime_error("AddAccessDeniedAce failed");
+        }
+        if (FAILED(SetSecurityInfo(mutex.value,
+                                   SE_KERNEL_OBJECT,
+                                   DACL_SECURITY_INFORMATION,
+                                   nullptr,
+                                   nullptr,
+                                   acl.value,
+                                   nullptr))) {
+            throw std::runtime_error("SetSecurityInfo failed");
+        }
     }
     /**
      * @brief 启动微信
      *
      */
-    DWORD Start() {
+    std::unique_ptr<ProcessData> Run() {
         try {
             UnlimitSignle();
         } catch (...) {
@@ -112,9 +136,8 @@ public:
                       NULL,
                       &si,
                       &pi);
-        CloseHandle(pi.hThread);
-        CloseHandle(pi.hProcess);
-        return pi.dwProcessId;
+        WaitForInputIdle(pi.hProcess, 5000);
+        return std::make_unique<ProcessData>(pi.dwProcessId, pi.hProcess, pi.hThread);
     }
 
 private:

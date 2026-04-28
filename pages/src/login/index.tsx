@@ -156,7 +156,7 @@ export default function Login() {
   return (
     <>
       <div
-        class="z-2 p-1 gap-1 flex-col"
+        class="z-2 p-1 gap-1 flex-col h-full"
         oncontextmenu={() => setSelUser(null)}
       >
         <TransitionGroup

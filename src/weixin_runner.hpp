@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <windows.h>
@@ -124,8 +125,9 @@ public:
         } catch (...) {
             // ignore
         }
-        STARTUPINFO si = {sizeof(si)};
-        PROCESS_INFORMATION pi = {0};
+        STARTUPINFO si{};
+        si.cb = sizeof(si);
+        PROCESS_INFORMATION pi{};
         CreateProcess(NULL,
                       (LPTSTR)Path().c_str(),
                       NULL,

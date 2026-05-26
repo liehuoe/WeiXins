@@ -1,6 +1,8 @@
 #pragma once
 
+#include <charconv>
 #include <cxxui/web_win.hpp>
+#include "resource.h"
 #include "config.hpp"
 #include "./count_win.hpp"
 

@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <windows.h>
+#include <Shlobj.h>
 
 class Config {
 public:

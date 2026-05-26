@@ -32,6 +32,8 @@ public:
         : Base(cxxui::WindowOptions{}) {
         RegisterHotKey(this->hwnd_, HOTKEY_WEIXIN, MOD_CONTROL | MOD_ALT, 'W');
     }
+    ~MainWindow() override { UnregisterHotKey(this->hwnd_, HOTKEY_WEIXIN); }
+    HWND GetHwnd() const { return this->hwnd_; }
 
 protected:
     CXXUI_WIN_EVENT(MainWindow)
@@ -41,11 +43,10 @@ protected:
                 LoginWindow::Open();
                 break;
             case WM_HOTKEY:
-                switch (wp) {
-                    case HOTKEY_WEIXIN: {
-                        WeiXinManager::GetInstance().Switch();
-                        break;
-                    }
+                if (wp == HOTKEY_WEIXIN) {
+                    WeiXinManager::GetInstance().Toggle();
+                } else {
+                    WeiXinManager::GetInstance().SetForeground(static_cast<int>(wp) - 101);
                 }
                 break;
             default:
@@ -60,6 +61,7 @@ int main() {
         return 1;
     }
     MainWindow win;
+    WeiXinManager::GetInstance().Init(win.GetHwnd());
     LoginWindow::Open();
 
     MSG msg{};
@@ -70,7 +72,7 @@ int main() {
             }
             TranslateMessage(&msg);
             DispatchMessageW(&msg);
-        } else if (!WeiXinManager::GetInstance().Run() && LoginWindow::Count() == 0) {
+        } else if (WeiXinManager::GetInstance().IsAllExit() && LoginWindow::Count() == 0) {
             cxxui::Exit();
         }
     }

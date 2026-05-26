@@ -1,7 +1,5 @@
 #pragma once
 
-#include <array>
-#include <charconv>
 #include <fstream>
 #include <shlobj.h>
 #include <cxxui/web_win.hpp>
@@ -90,28 +88,13 @@ private:
         : Base(cxxui::WindowOptions().SetTitle("微信多开助手").SetWidth(300).SetHeight(400)) {
         SetIcon(IDI_LOGO);
     }
-    /** 设置窗口到前台 */
-    void SetForeground() {
-        DWORD fore_id = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
-        DWORD cur_id = GetCurrentThreadId();
-        AttachThreadInput(cur_id, fore_id, TRUE);
-
-        if (IsIconic(this->hwnd_)) {
-            ShowWindow(this->hwnd_, SW_RESTORE);
-        } else {
-            ShowWindow(this->hwnd_, SW_SHOW);
-        }
-        SetForegroundWindow(this->hwnd_);
-
-        AttachThreadInput(cur_id, fore_id, FALSE);
-    }
     CXXUI_WIN_EVENT(LoginWindow)
     CXXUI_WEB_EVENT(LoginWindow)
     void OnWebCreated(std::optional<cxxui::WindowError> err) {
         Base::OnWebCreated(err);
         InitJsMsg();
         SetUrl(PAGE(login));
-        SetForeground();
+        SetForeground(this->hwnd_);
     }
     void OnClosed() {
         if (win_.get() == this) {
@@ -143,7 +126,9 @@ private:
         }
         // 先隐藏, 等待微信登录后或退出后再关闭窗口
         Show(false);
-        win_.release();  // NEW: win_.release
+        if (win_.get() == this) {
+            [[maybe_unused]] auto ptr = win_.release();  // NEW: win_.release
+        }
         RunWeiXin(std::move(login_dir));
         return nullptr;
     }
@@ -230,7 +215,7 @@ private:
 public:
     static void Open() {
         if (win_) {
-            win_->SetForeground();
+            SetForeground(win_->hwnd_);
         } else {
             win_ = std::unique_ptr<LoginWindow>{new LoginWindow{}};
         }

@@ -147,7 +147,7 @@ export default function Login() {
             <p />
             <div>商业合作请加微信</div>
             <img class="max-w-1/2 max-h-1/3" src="/1001.jpg" />
-            <div>程序版本：1.0.4</div>
+            <div>程序版本：1.0.5</div>
           </div>
         </Show>
       </Transition>

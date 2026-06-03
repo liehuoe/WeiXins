@@ -70,9 +70,9 @@ private:
             if (!WeiXinManager::GetInstance().EmitLogin(timer->wx_pid)) {
                 return;
             }
-            static_cast<Derived*>(timer->win)->OnLogin(timer->login_dir, true);
-        } else {  // 微信退出
             static_cast<Derived*>(timer->win)->OnLogin(timer->login_dir, false);
+        } else {  // 微信退出
+            static_cast<Derived*>(timer->win)->OnLogin(timer->login_dir, true);
         }
         // 清理资源
         KillTimer(timer->win->hwnd_, id_event);

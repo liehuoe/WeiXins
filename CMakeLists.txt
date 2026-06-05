@@ -9,7 +9,10 @@ include(FetchContent)
 
 add_executable(${PROJECT_NAME} src/main.cpp res/resource.rc)
 set_target_properties(${PROJECT_NAME} PROPERTIES VS_MANIFEST_INPUT "${CMAKE_CURRENT_SOURCE_DIR}/res/app.manifest")
-
+# config.h 配置
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+# C++ 项目配置
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wshadow -pedantic-errors -Werror)

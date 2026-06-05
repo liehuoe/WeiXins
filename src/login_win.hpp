@@ -9,6 +9,7 @@
 #include "weixin_manager.hpp"
 #include "weixin_runner.hpp"
 #include "feature_win/dark_win.hpp"
+#include "config.h"
 
 template <typename Derived>
 class WeiXinRunWindow : public DarkWindow<Derived> {
@@ -106,11 +107,13 @@ private:
 private:
     cxxui::JsMsgMap<> map_;
     void InitJsMsg() {
+        map_.bind("/app/version", OnAppVersion);
         map_.bind("/user/get", OnUserGet);
         map_.bind("/user/login", [this](cxxui::json& arg) { return OnUserLogin(arg); });
         map_.bind("/user/set", OnUserSet);
         OnJsMsg(map_.GetHandler());
     }
+    static cxxui::json OnAppVersion(cxxui::json&) { return PROJECT_VERSION; }
     static cxxui::json OnUserGet(cxxui::json&) {
         return cxxui::json::parse(std::ifstream{Config::GetInstance().GetCfgPath()});
     }

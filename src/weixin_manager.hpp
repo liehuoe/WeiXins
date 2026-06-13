@@ -232,10 +232,10 @@ private:
         EnumData data{pid, nullptr, nullptr};
         EnumWindows(
             [](HWND hwnd, LPARAM lp) -> BOOL {
-                EnumData* data = reinterpret_cast<EnumData*>(lp);
-                DWORD pid = 0;
-                GetWindowThreadProcessId(hwnd, &pid);
-                if (pid != data->pid) {
+                EnumData* pdata = reinterpret_cast<EnumData*>(lp);
+                DWORD cur_pid = 0;
+                GetWindowThreadProcessId(hwnd, &cur_pid);
+                if (cur_pid != pdata->pid) {
                     return TRUE;
                 }
                 char name[256];
@@ -243,12 +243,12 @@ private:
                 std::string_view str{name};
                 if (EndWith(str, "QWindowIcon")) {
                     if (IsWindowVisible(hwnd) && GetRenderWindow(hwnd) != nullptr) {
-                        data->main = hwnd;
+                        pdata->main = hwnd;
                     }
                 } else if (EndWith(str, "WxTrayIconMessageWindowClass")) {
-                    data->tray = hwnd;
+                    pdata->tray = hwnd;
                 }
-                if (data->main && data->tray) {
+                if (pdata->main && pdata->tray) {
                     return FALSE;
                 }
                 return TRUE;
@@ -262,11 +262,11 @@ private:
         EnumChildWindows(
             hwnd,
             [](HWND h, LPARAM lp) {
-                HWND* render_hwnd = reinterpret_cast<HWND*>(lp);
+                HWND* prender_hwnd = reinterpret_cast<HWND*>(lp);
                 char name[256];
                 GetClassNameA(h, name, 256);
                 if (std::string_view{name} == "MMUIRenderSubWindowHW") {
-                    *render_hwnd = h;
+                    *prender_hwnd = h;
                     return FALSE;
                 } else {
                     return TRUE;

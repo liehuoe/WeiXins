@@ -44,13 +44,13 @@ private:
         EnumData data{timer->wx_pid, 0};
         EnumWindows(
             [](HWND hwnd, LPARAM lp) -> BOOL {
-                EnumData* data = reinterpret_cast<EnumData*>(lp);
+                EnumData* pdata = reinterpret_cast<EnumData*>(lp);
                 DWORD pid = 0;
                 GetWindowThreadProcessId(hwnd, &pid);
-                if (pid != data->pid) {
+                if (pid != pdata->pid) {
                     return TRUE;
                 }
-                data->count++;
+                pdata->count++;
 
 #ifdef _DEBUG
                 char name[256];

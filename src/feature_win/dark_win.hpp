@@ -45,7 +45,7 @@ private:
         is_dark_ = is_dark;
         auto color = is_dark_ ? cxxui::Color{18, 18, 18} : cxxui::Color{255, 255, 255};
         try {
-            SetTitleColor(color);
+            this->SetTitleColor(color);
         } catch (...) {
             // 低版本系统不支持该功能，忽略
         }

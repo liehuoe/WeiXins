@@ -30,7 +30,7 @@ protected:
         // *.head_img 的请求使用本地保存的头像文件进行响应
         // 文件名为 logo 表示请求读取程序本身的图标
         // 文件名为 数字 表示请求对应资源ID的资源文件
-        OnWebRequest([](cxxui::WebRequest& ctx) {
+        this->OnWebRequest([](cxxui::WebRequest& ctx) {
             auto url = ctx.GetUrl();
             std::string_view urlv = url;
             urlv.remove_prefix((std::min)(9, static_cast<int>(urlv.size())));  // http://./

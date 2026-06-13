@@ -7,8 +7,6 @@
 #include <tchar.h>
 #include <aclapi.h>
 
-#pragma comment(lib, "Advapi32.lib")
-
 class ProcessData {
 public:
     ProcessData(DWORD pid, HANDLE process, HANDLE thread)

@@ -33,7 +33,6 @@ public:
         RegisterHotKey(this->hwnd_, HOTKEY_WEIXIN, MOD_CONTROL | MOD_ALT, 'W');
     }
     ~MainWindow() override { UnregisterHotKey(this->hwnd_, HOTKEY_WEIXIN); }
-    HWND GetHwnd() const { return this->hwnd_; }
 
 protected:
     CXXUI_WIN_EVENT(MainWindow)
@@ -61,7 +60,7 @@ int main() {
         return 1;
     }
     MainWindow win;
-    WeiXinManager::GetInstance().Init(win.GetHwnd());
+    WeiXinManager::GetInstance().Init(win.GetHandle());
     LoginWindow::Open();
 
     MSG msg{};

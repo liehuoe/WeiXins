@@ -4,6 +4,9 @@
 #include <windows.h>
 #include <Shlobj.h>
 
+/** 微信头像文件名 */
+inline std::string_view kHeadImgName = "logo.jpg";
+
 class Config {
 public:
     static Config& GetInstance() {

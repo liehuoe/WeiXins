@@ -2,8 +2,12 @@
 
 #include <vector>
 #include <map>
+#include <fstream>
+#include <nlohmann/json.hpp>
 #include "utils.hpp"
+#include "config.hpp"
 #include "weixin_runner.hpp"
+#include <gdiplus.h>
 
 template <typename Derived>
 class Singleton {
@@ -62,25 +66,30 @@ public:
     /**
      * @brief 添加需要等待退出的微信进程
      */
-    void WaitForExit(std::string /** 用户目录 */, std::unique_ptr<ProcessData> pd) {
+    void WaitForExit(std::string login_dir, std::unique_ptr<ProcessData> pd) {
         static_cast<Derived*>(this)->OnCreated(static_cast<int>(handles_.size()), pd);
         handles_.emplace_back(pd->GetProcess());
+        dirs_.emplace_back(std::move(login_dir));
         pds_.emplace_back(std::move(pd));
     }
 
 protected:
+    const std::vector<std::string>& GetDirs() const noexcept { return dirs_; }
     const std::vector<std::unique_ptr<ProcessData>>& GetPds() const noexcept { return pds_; }
     void OnCreated(int, const std::unique_ptr<ProcessData>&) {}
+    bool OnLogin(int) { return true; }
     void OnClosed(int, const std::unique_ptr<ProcessData>&) {}
 
 private:
     std::vector<HANDLE> handles_;
+    std::vector<std::string> dirs_;
     std::vector<std::unique_ptr<ProcessData>> pds_;
     void Remove(int idx) {
         handles_.erase(handles_.begin() + idx);
         auto& pd = pds_[idx];
         static_cast<Derived*>(this)->OnClosed(idx, pd);
         pds_.erase(pds_.begin() + idx);
+        dirs_.erase(dirs_.begin() + idx);
     }
 };
 
@@ -96,7 +105,7 @@ public:
                 return pd->GetPid() == pid;
             });
         auto idx = static_cast<int>(std::prev(rit.base()) - pds.begin());
-        return static_cast<Derived*>(this)->OnLogin(idx, pds[idx]);
+        return static_cast<Derived*>(this)->OnLogin(idx);
     }
     /** 切换微信窗口 */
     void Toggle() {
@@ -133,9 +142,9 @@ protected:
         hooks_.emplace_back(hook);
         Base::OnCreated(idx, pd);
     }
-    bool OnLogin(int idx, const std::unique_ptr<ProcessData>& pd) {
+    bool OnLogin(int idx) {
         HWND main, tray;
-        GetWeiXinWindow(pd->GetPid(), main, tray);
+        GetWeiXinWindow(this->GetPds()[idx]->GetPid(), main, tray);
         if (!main) {
             return false;
         }
@@ -143,7 +152,7 @@ protected:
         main_idx_map_.emplace(main, idx);
         trays_[idx] = tray;
         focus_index_ = 0;
-        return true;
+        return Base::OnLogin(idx);
     }
     void OnClosed(int idx, const std::unique_ptr<ProcessData>& pd) {
         this->template SetHotKey<false>(static_cast<int>(mains_.size()));
@@ -165,6 +174,7 @@ protected:
         }
         Base::OnClosed(idx, pd);
     }
+    const std::vector<HWND>& GetMains() const noexcept { return mains_; }
 
 private:
     int focus_index_ = 0;
@@ -277,8 +287,141 @@ private:
     }
 };
 
-class WeiXinManager : public WeiXinSwitcher<WeiXinManager> {
-    using Base = WeiXinSwitcher<WeiXinManager>;
+template <typename Derived>
+class WeiXinSysMenu : public WeiXinSwitcher<Derived> {
+    using Base = WeiXinSwitcher<Derived>;
+
+public:
+    WeiXinSysMenu()
+        : Base() {
+        Gdiplus::GdiplusStartupInput startupInput;
+        startupInput.GdiplusVersion = 1;
+        Gdiplus::GdiplusStartup(&gdi_token_, &startupInput, nullptr);
+    };
+    ~WeiXinSysMenu() { Gdiplus::GdiplusShutdown(gdi_token_); };
+
+protected:
+    friend class WeiXinChecker<Derived>;
+    void OnCreated(int idx, const std::unique_ptr<ProcessData>& pd) {
+        icons_.emplace_back(nullptr);
+        Base::OnCreated(idx, pd);
+    }
+    bool OnLogin(int idx) {
+        if (!Base::OnLogin(idx)) {
+            return false;
+        }
+        HWND hwnd = this->GetMains()[idx];
+        UpdateTitle(idx, hwnd);
+        UpdateIcon(idx, hwnd);
+        return true;
+    }
+    void OnClosed(int idx, const std::unique_ptr<ProcessData>& pd) {
+        icons_.erase(icons_.begin() + idx);
+        Base::OnClosed(idx, pd);
+    }
+
+private:
+    ULONG_PTR gdi_token_;
+    struct Icon {
+        HICON value;
+        Icon(HICON val) noexcept
+            : value(val) {}
+        Icon(Icon&& other) noexcept {
+            value = other.value;
+            other.value = nullptr;
+        }
+        ~Icon() {
+            if (value) {
+                DestroyIcon(value);
+            }
+        }
+        Icon& operator=(Icon&& other) noexcept {
+            if (this != &other) {
+                value = other.value;
+                other.value = nullptr;
+            }
+            return *this;
+        }
+    };
+    std::vector<Icon> icons_;
+
+    /** 更新微信任务栏的标题 */
+    void UpdateTitle(int idx, HWND hwnd) {
+        auto root = nlohmann::json::parse(std::ifstream{Config::GetInstance().GetCfgPath()});
+        if (!root.is_array()) {
+            return;
+        }
+        std::string login_name;
+        const std::string& login_dir = this->GetDirs()[idx];
+        for (const auto& item : root) {
+            std::string name = item.value("name", "");
+            std::string dir = item.value("dir", "");
+            if (name.empty() || dir.empty()) {
+                continue;
+            }
+            if (dir != login_dir) {
+                continue;
+            }
+            login_name = std::move(name);
+            break;
+        }
+        if (login_name.empty()) {
+            return;
+        }
+        login_name = std::to_string(idx + 1) + ". " + login_name;
+        SetWindowTextW(hwnd, cxxui::detail::U82W(login_name).c_str());
+    }
+    /** 更新微信任务栏的图标 */
+    void UpdateIcon(int idx, HWND hwnd) {
+        // 加载图片
+        auto jpg_path = Config::GetInstance().GetUserDir() / this->GetDirs()[idx] / kHeadImgName;
+        using namespace Gdiplus;
+        struct Jpg {
+            Bitmap* value;
+            Jpg(Bitmap* val) noexcept
+                : value(val) {}
+            ~Jpg() {
+                if (value) {
+                    delete value;
+                }
+            }
+        };
+        Jpg jpg = Bitmap::FromFile(jpg_path.c_str());
+        if (!jpg.value || jpg.value->GetLastStatus() != Ok) {
+            return;
+        }
+        // 裁剪图片
+        constexpr int size = 256;
+        constexpr int radius = size / 2;
+        Jpg resized = new Bitmap(size, size, PixelFormat32bppARGB);
+        Graphics graphics(resized.value);
+        graphics.SetSmoothingMode(SmoothingModeAntiAlias);
+        graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
+        // 圆角
+        graphics.Clear(Color(0, 0, 0, 0));
+        GraphicsPath path;
+        path.AddArc(0, 0, radius, radius, 180, 90);
+        path.AddArc(0 + size - radius, 0, radius, radius, 270, 90);
+        path.AddArc(0 + size - radius, 0 + size - radius, radius, radius, 0, 90);
+        path.AddArc(0, 0 + size - radius, radius, radius, 90, 90);
+        path.CloseFigure();
+        graphics.SetClip(&path, CombineModeReplace);
+
+        graphics.DrawImage(jpg.value, 0, 0, size, size);
+        // 获取 HICON
+        HICON icon;
+        if (resized.value->GetHICON(&icon) != Ok) {
+            return;
+        }
+        icons_[idx] = icon;
+        LPARAM lp = reinterpret_cast<LPARAM>(icon);
+        SendMessageW(hwnd, WM_SETICON, ICON_BIG, lp);
+        SendMessageW(hwnd, WM_SETICON, ICON_SMALL, lp);
+    }
+};
+
+class WeiXinManager : public WeiXinSysMenu<WeiXinManager> {
+    using Base = WeiXinSysMenu<WeiXinManager>;
 
 public:
     static WeiXinManager& GetInstance() { return Singleton<WeiXinManager>::GetInstance(); }

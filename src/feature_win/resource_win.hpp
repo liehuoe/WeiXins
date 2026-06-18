@@ -46,7 +46,7 @@ protected:
                     try {
                         ctx.SetHeaders(std::string{ctx.GetContentType("jpg")});
                         ctx.SetResponse(
-                            (Config::GetInstance().GetUserDir() / name / "logo.jpg").u8string());
+                            (Config::GetInstance().GetUserDir() / name / kHeadImgName).u8string());
                         return;
                     } catch (...) {
                         name = "logo";  // 退化为加载默认logo
@@ -90,7 +90,7 @@ protected:
                 std::string dir{urlv.substr(pos, urlv.find(".head_img", pos + 1) - pos)};
                 try {
                     ctx.SetResponse(
-                        (Config::GetInstance().GetUserDir() / dir / "logo.jpg").u8string());
+                        (Config::GetInstance().GetUserDir() / dir / kHeadImgName).u8string());
                     ctx.SetHeaders(std::string{ctx.GetContentType("jpg")});
                 } catch (...) {
                     HINSTANCE hinst = GetModuleHandle(nullptr);

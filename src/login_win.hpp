@@ -66,18 +66,19 @@ private:
         if (data.count > 0 && data.count <= 6) {
             return;  // 微信正在登录, 继续 timer 检测
         }
-
+        if (!timer->login_dir.empty()) {
+            static_cast<Derived*>(timer->win)->OnLogin(timer->login_dir, data.count == 0);
+            timer->login_dir.clear();  // 清空登录目录, 避免重复调用 OnLogin
+        }
         if (data.count > 6) {  // 登录成功
             if (!WeiXinManager::GetInstance().EmitLogin(timer->wx_pid)) {
                 return;
             }
-            static_cast<Derived*>(timer->win)->OnLogin(timer->login_dir, false);
-        } else {  // 微信退出
-            static_cast<Derived*>(timer->win)->OnLogin(timer->login_dir, true);
         }
         // 清理资源
         KillTimer(timer->win->hwnd_, id_event);
-        delete timer;  // DEL: new TimerData
+        delete timer->win;  // DEL: win_.release
+        delete timer;       // DEL: new TimerData
     }
 };
 
@@ -141,7 +142,6 @@ private:
             UpdateHeadImg(login_dir);        // 更新头像
             UpdateConfig<false>(login_dir);  // 更新配置文件
         }
-        delete this;  // DEL: win_.release
     }
     static cxxui::json OnUserSet(cxxui::json& arg) {
         namespace fs = std::filesystem;
@@ -209,7 +209,7 @@ private:
         if (!logo_dir.empty()) {
             fs::path logo_src = GetFirstFile(logo_dir);
             if (!logo_src.empty()) {
-                fs::path logo_dst = Config::GetInstance().GetUserDir() / login_dir / "logo.jpg";
+                fs::path logo_dst = Config::GetInstance().GetUserDir() / login_dir / kHeadImgName;
                 CopyFileExW(logo_src.c_str(), logo_dst.c_str(), nullptr, nullptr, nullptr, 0);
             }
         }

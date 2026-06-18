@@ -29,7 +29,7 @@ class MainWindow : public cxxui::Window<MainWindow> {
 
 public:
     MainWindow()
-        : Base(cxxui::WindowOptions{}) {
+        : Base(cxxui::WindowOptions{}.SetParent(HWND_MESSAGE)) {
         RegisterHotKey(this->hwnd_, HOTKEY_WEIXIN, MOD_CONTROL | MOD_ALT, 'W');
     }
     ~MainWindow() override { UnregisterHotKey(this->hwnd_, HOTKEY_WEIXIN); }

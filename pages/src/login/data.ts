@@ -4,6 +4,8 @@ import type { User } from "../api/user";
 import { SetFocusList } from "./focus_list";
 import { showTip } from "./tips";
 
+export type UserData = User & { login: Boolean };
+
 export const Status = {
   Normal: "Normal",
   Edit: "Edit",
@@ -18,7 +20,12 @@ export class Data {
     SetFocusList(this.userDoms);
 
     try {
-      const newUsers = await api.user.get();
+      const users = await api.user.get();
+      const dirs = new Set(await api.user.getLoginDirs());
+      const newUsers = users.map((user) => ({
+        ...user,
+        login: dirs.has(user.dir),
+      }));
       // 相同的账号信息使用旧的引用(为了动画效果)
       const oldUsers = this.users || [];
       this.users = newUsers.map((newUser) => {
@@ -32,8 +39,12 @@ export class Data {
     }
   }
   /** 登录账号 */
-  async login(user: User) {
-    await api.user.login(user);
+  async login(user: UserData) {
+    if (user.login) {
+      showTip({ msg: "此账号已打开", icon: "i-mdi-error bg-red" });
+    } else {
+      await api.user.login(user);
+    }
   }
   /** 添加账号 */
   async add(arg: Pick<User, "name">) {
@@ -48,7 +59,7 @@ export class Data {
     dir += String(now.getHours()).padStart(2, "0");
     dir += String(now.getMinutes()).padStart(2, "0");
     dir += String(now.getSeconds()).padStart(2, "0");
-    this.users = [...this.users!, { name: arg.name, dir }];
+    this.users = [...this.users!, { name: arg.name, dir, login: false }];
     try {
       await api.user.set(this.users);
     } catch {
@@ -56,7 +67,7 @@ export class Data {
       throw new Error("添加账号出错");
     }
   }
-  async modify(arg: { user: User; newName?: string }) {
+  async modify(arg: { user: UserData; newName?: string }) {
     const users = this.users;
     if (!users) return;
     const index = users.indexOf(arg.user);
@@ -64,7 +75,7 @@ export class Data {
     let action = "删除";
     if (arg.newName) {
       action = "修改";
-      newUsers.push({ name: arg.newName, dir: arg.user.dir });
+      newUsers.push({ ...arg.user, name: arg.newName });
     } else if (arg.newName === "") {
       showTip({ msg: "账号名称不能为空", icon: "i-mdi-warning bg-orange" });
       throw new Error("账号名称不能为空");
@@ -82,10 +93,10 @@ export class Data {
   get users() {
     return this._users[0]();
   }
-  set users(value: User[] | null) {
+  set users(value: UserData[] | null) {
     this._users[1](value);
   }
-  private _users = createSignal<User[] | null>(null);
+  private _users = createSignal<UserData[] | null>(null);
   /** 当前状态 */
   get status() {
     return this._status[0]();

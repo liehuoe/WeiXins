@@ -72,9 +72,9 @@ public:
         dirs_.emplace_back(std::move(login_dir));
         pds_.emplace_back(std::move(pd));
     }
+    const std::vector<std::string>& GetDirs() const noexcept { return dirs_; }
 
 protected:
-    const std::vector<std::string>& GetDirs() const noexcept { return dirs_; }
     const std::vector<std::unique_ptr<ProcessData>>& GetPds() const noexcept { return pds_; }
     void OnCreated(int, const std::unique_ptr<ProcessData>&) {}
     bool OnLogin(int) { return true; }

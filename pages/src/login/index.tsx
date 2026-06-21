@@ -3,8 +3,7 @@ import { Transition, TransitionGroup } from "solid-transition-group";
 import { EmptyText } from "./empty_text";
 import { Icon } from "./icon";
 import { EnableFocusList } from "./focus_list";
-import { Data, Status } from "./data";
-import type { User } from "../api/user";
+import { Data, Status, type UserData } from "./data";
 import { ContextMenu, MenuItem, showContextMenu } from "./ctx_menu";
 import { showTip, Tips } from "./tips";
 import { api } from "../api";
@@ -34,13 +33,12 @@ export default function Login() {
       </button>
     );
   }
-  const [selUser, setSelUser] = createSignal<User | null>(null);
-  function ReadItem(props: { user: User }) {
+  const [selUser, setSelUser] = createSignal<UserData | null>(null);
+  function ReadItem(props: { user: UserData }) {
     return (
       <Item
         ref={(el) => data.userDoms.push(el)}
-        class="bg-green shadow-dark shadow-2xl hover:shadow-lg hover:bg-op-70 cursor-pointer
-        dark:shadow-black"
+        class={`${props.user.login ? "bg-yellow-300" : "bg-green"} shadow-dark shadow-2xl hover:shadow-lg hover:bg-op-70 cursor-pointer dark:shadow-black`}
         onClick={() => data.login(props.user)}
         onContextMenu={(e) => {
           e.preventDefault();
@@ -54,7 +52,7 @@ export default function Login() {
           style="border: solid #fff 1px"
           src={`/${props.user.dir}.head_img`}
         />
-        <div class="items-center flex-1">{props.user.name}</div>
+        <div class="items-center flex-1 overflow-hidden">{props.user.name}</div>
       </Item>
     );
   }

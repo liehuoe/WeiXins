@@ -110,6 +110,7 @@ private:
     void InitJsMsg() {
         map_.bind("/app/version", OnAppVersion);
         map_.bind("/user/get", OnUserGet);
+        map_.bind("/user/getLoginDirs", OnUserGetLoginDirs);
         map_.bind("/user/login", [this](cxxui::json& arg) { return OnUserLogin(arg); });
         map_.bind("/user/set", OnUserSet);
         OnJsMsg(map_.GetHandler());
@@ -117,6 +118,9 @@ private:
     static cxxui::json OnAppVersion(cxxui::json&) { return PROJECT_VERSION; }
     static cxxui::json OnUserGet(cxxui::json&) {
         return cxxui::json::parse(std::ifstream{Config::GetInstance().GetCfgPath()});
+    }
+    static cxxui::json OnUserGetLoginDirs(cxxui::json&) {
+        return WeiXinManager::GetInstance().GetDirs();
     }
     cxxui::json OnUserLogin(cxxui::json& arg) {
         namespace fs = std::filesystem;

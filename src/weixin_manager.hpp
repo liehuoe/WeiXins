@@ -9,15 +9,6 @@
 #include "weixin_runner.hpp"
 #include <gdiplus.h>
 
-template <typename Derived>
-class Singleton {
-protected:
-    static Derived& GetInstance() {
-        static Derived instance;
-        return instance;
-    }
-};
-
 /** 管理主进程 */
 template <typename Derived>
 class MainManager : public Singleton<Derived> {

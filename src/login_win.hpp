@@ -2,18 +2,42 @@
 
 #include <fstream>
 #include <shlobj.h>
-#include <cxxui/web_win.hpp>
 #include <cxxui/web_win/js_msg_map.hpp>
 #include "resource.h"
 #include "utils.hpp"
-#include "weixin_manager.hpp"
 #include "weixin_runner.hpp"
 #include "feature_win/dark_win.hpp"
+#include "weixin_manager.hpp"
 #include "config.h"
 
+struct Counter {
+    inline static int value = 0;
+};
+
+/** 窗口计数，用于判断进程是否应该退出 */
 template <typename Derived>
-class WeiXinRunWindow : public DarkWindow<Derived> {
+class CountWindow : public DarkWindow<Derived> {
     using Base = DarkWindow<Derived>;
+
+public:
+    using Base::Base;
+    static int Count() { return Counter::value; }
+
+protected:
+    CXXUI_WIN_EVENT(Derived)
+    void OnCreated() {
+        ++Counter::value;
+        Base::OnCreated();
+    }
+    void OnClosed() {
+        --Counter::value;
+        Base::OnClosed();
+    }
+};
+
+template <typename Derived>
+class WeiXinRunWindow : public CountWindow<Derived> {
+    using Base = CountWindow<Derived>;
     struct TimerData {
         WeiXinRunWindow* win;
         DWORD wx_pid;           // 微信进程ID
@@ -87,7 +111,7 @@ class LoginWindow : public WeiXinRunWindow<LoginWindow> {
 
 private:
     LoginWindow()
-        : Base(cxxui::WindowOptions().SetTitle("微信多开助手").SetWidth(300).SetHeight(400)) {
+        : Base(cxxui::WindowOptions{}.SetTitle("微信多开助手").SetWidth(300).SetHeight(400)) {
         SetIcon(IDI_LOGO);
     }
     CXXUI_WIN_EVENT(LoginWindow)
@@ -222,7 +246,7 @@ private:
 public:
     static void Open() {
         if (win_) {
-            SetForeground(win_->hwnd_);
+            SetForeground(win_->GetHandle());
         } else {
             win_ = std::unique_ptr<LoginWindow>{new LoginWindow{}};
         }

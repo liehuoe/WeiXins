@@ -4,7 +4,6 @@
 #include <cxxui/web_win.hpp>
 #include "resource.h"
 #include "config.hpp"
-#include "./count_win.hpp"
 
 #ifdef _DEBUG
     // debug 模式 直接访问本地前端的调试网址
@@ -17,8 +16,8 @@
 
 /** 通过程序内置资源响应 webrequest 请求 */
 template <typename Derived>
-class ResourceWindow : public CountWindow<Derived> {
-    using Base = CountWindow<Derived>;
+class ResourceWindow : public cxxui::WebWindow<Derived> {
+    using Base = cxxui::WebWindow<Derived>;
 
 public:
     using Base::Base;

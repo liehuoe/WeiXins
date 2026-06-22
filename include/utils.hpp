@@ -55,3 +55,15 @@ inline void SetForeground(HWND hwnd) {
 
     AttachThreadInput(cur_id, fore_id, FALSE);
 }
+
+/**
+ * @brief 为每个类型获取一个单例对象
+ */
+template <typename Derived>
+class Singleton {
+protected:
+    static Derived& GetInstance() {
+        static Derived instance;
+        return instance;
+    }
+};

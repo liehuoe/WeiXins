@@ -120,6 +120,55 @@ public:
             TrayShow(idx);
         }
     }
+    /** 获取微信主窗口 */
+    static HWND GetWeiXinWindow(DWORD pid) {
+        struct EnumData {
+            DWORD pid;
+            HWND hwnd;
+        };
+        EnumData data{pid, nullptr};
+        EnumWindows(
+            [](HWND hwnd, LPARAM lp) -> BOOL {
+                if (!IsWindowVisible(hwnd)) {
+                    return TRUE;
+                }
+                EnumData* pdata = reinterpret_cast<EnumData*>(lp);
+                DWORD cur_pid = 0;
+                GetWindowThreadProcessId(hwnd, &cur_pid);
+                if (cur_pid != pdata->pid) {
+                    return TRUE;
+                }
+                char name[256];
+                GetClassNameA(hwnd, name, sizeof(name));
+                std::string_view str{name};
+                if (!EndWith(str, "QWindowIcon")) {
+                    return TRUE;
+                }
+                // 检查是否有渲染窗口
+                HWND render_hwnd = nullptr;
+                EnumChildWindows(
+                    hwnd,
+                    [](HWND h, LPARAM lparam) {
+                        HWND* prender_hwnd = reinterpret_cast<HWND*>(lparam);
+                        char cname[256];
+                        GetClassNameA(h, cname, 256);
+                        if (std::string_view{cname} == "MMUIRenderSubWindowHW") {
+                            *prender_hwnd = h;
+                            return FALSE;
+                        } else {
+                            return TRUE;
+                        }
+                    },
+                    reinterpret_cast<LPARAM>(&render_hwnd));
+                if (!render_hwnd) {
+                    return TRUE;
+                }
+                pdata->hwnd = hwnd;
+                return FALSE;
+            },
+            reinterpret_cast<LPARAM>(&data));
+        return data.hwnd;
+    }
 
 protected:
     friend class WeiXinChecker<Derived>;
@@ -134,11 +183,12 @@ protected:
         Base::OnCreated(idx, pd);
     }
     bool OnLogin(int idx) {
-        HWND main, tray;
-        GetWeiXinWindow(this->GetPds()[idx]->GetPid(), main, tray);
+        DWORD pid = this->GetPds()[idx]->GetPid();
+        HWND main = GetWeiXinWindow(pid);
         if (!main) {
             return false;
         }
+        HWND tray = GetWeiXinTray(pid);
         mains_[idx] = main;
         main_idx_map_.emplace(main, idx);
         trays_[idx] = tray;
@@ -224,13 +274,13 @@ private:
                 break;
         }
     }
-    static void GetWeiXinWindow(DWORD pid, HWND& main, HWND& tray) {
+    /** 获取微信托盘图标窗口 */
+    static HWND GetWeiXinTray(DWORD pid) {
         struct EnumData {
             DWORD pid;
-            HWND main;
-            HWND tray;
+            HWND hwnd;
         };
-        EnumData data{pid, nullptr, nullptr};
+        EnumData data{pid, nullptr};
         EnumWindows(
             [](HWND hwnd, LPARAM lp) -> BOOL {
                 EnumData* pdata = reinterpret_cast<EnumData*>(lp);
@@ -242,21 +292,14 @@ private:
                 char name[256];
                 GetClassNameA(hwnd, name, sizeof(name));
                 std::string_view str{name};
-                if (EndWith(str, "QWindowIcon")) {
-                    if (IsWindowVisible(hwnd) && GetRenderWindow(hwnd) != nullptr) {
-                        pdata->main = hwnd;
-                    }
-                } else if (EndWith(str, "WxTrayIconMessageWindowClass")) {
-                    pdata->tray = hwnd;
+                if (!EndWith(str, "WxTrayIconMessageWindowClass")) {
+                    return TRUE;
                 }
-                if (pdata->main && pdata->tray) {
-                    return FALSE;
-                }
-                return TRUE;
+                pdata->hwnd = hwnd;
+                return FALSE;
             },
             reinterpret_cast<LPARAM>(&data));
-        main = data.main;
-        tray = data.tray;
+        return data.hwnd;
     }
     static HWND GetRenderWindow(HWND hwnd) {
         HWND render_hwnd = nullptr;

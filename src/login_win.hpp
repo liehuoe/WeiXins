@@ -88,6 +88,12 @@ private:
             },
             reinterpret_cast<LPARAM>(&data));
         if (data.count > 0 && data.count <= 6) {
+            // 通过模拟按下enter键跳过登录确认窗口
+            HWND hwnd = WeiXinManager::GetWeiXinWindow(data.pid);
+            if (hwnd) {
+                SendMessageW(hwnd, WM_KEYDOWN, VK_RETURN, 0);
+                SendMessageW(hwnd, WM_KEYUP, VK_RETURN, 0);
+            }
             return;  // 微信正在登录, 继续 timer 检测
         }
         if (!timer->login_dir.empty()) {

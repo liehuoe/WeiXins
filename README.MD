@@ -17,6 +17,31 @@
 
 ![运行示例](./docs/running.gif)
 
+## 编译
+
+```bash
+# 编译前端页面
+cd pages
+npm install
+npm run build
+# 编译C++
+cd ..
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+
+# 如果编译 Debug 版本，C++会通过 http://localhost:5173 加载页面
+# 这时需要通过 npm run dev 启动前端，方便开发前端页面
+
+# 启动前端页面
+cd pages
+npm install
+npm run dev
+# 编译C++
+cd ..
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build
+```
+
 ## 支持
 
 <table>

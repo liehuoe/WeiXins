@@ -21,7 +21,7 @@ export class Data {
 
     try {
       const users = await api.user.get();
-      const dirs = new Set(await api.user.getLoginDirs());
+      const dirs = new Set(await api.user.getDirs());
       const newUsers = users.map((user) => ({
         ...user,
         login: dirs.has(user.dir),

@@ -1,0 +1,210 @@
+#pragma once
+
+#include <filesystem>
+#include <windows.h>
+#include <Shlobj.h>
+#include <utils.hpp>
+
+namespace weixin {
+
+/**
+ * @brief 获取微信的用户数据目录
+ *
+ * @return std::filesystem::path 获取失败返回空路径
+ */
+inline std::filesystem::path GetProfileDir() noexcept {
+    std::filesystem::path path;
+    PWSTR profile_dir = nullptr;
+    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Profile, 0, nullptr, &profile_dir))) {
+        path = std::filesystem::path{profile_dir} / "Documents/xwechat_files/all_users";
+        CoTaskMemFree(profile_dir);
+    }
+    return path;
+}
+
+/**
+ * @brief 获取微信的登录配置文件所在的目录
+ *
+ * @return std::filesystem::path 获取失败返回空路径
+ */
+inline std::filesystem::path GetConfigDir() noexcept {
+    std::filesystem::path path = GetProfileDir();
+    if (!path.empty()) {
+        path /= "config";
+    }
+    return path;
+}
+
+/**
+ * @brief 获取微信的头像文件所在的目录
+ *
+ * @return std::filesystem::path 获取失败返回空路径
+ */
+inline std::filesystem::path GetHeadImgDir() noexcept {
+    std::filesystem::path path = GetProfileDir();
+    if (!path.empty()) {
+        path /= "head_imgs";
+    }
+    return path;
+}
+
+/**
+ * @brief 复制登录配置文件到微信/程序
+ *
+ * @tparam to_weixin true: 从 dir 更新到微信, false: 从微信更新到 dir
+ * @param bak_dir 登录配置文件备份的目录
+ */
+template <bool to_weixin = true>
+void CopyLoginFiles(const std::filesystem::path& bak_dir) {
+    namespace fs = std::filesystem;
+    if (!fs::exists(bak_dir)) {
+        fs::create_directories(bak_dir);
+    }
+    auto wx_dir = GetConfigDir();
+    if (wx_dir.empty()) {
+        return;
+    }
+    fs::path src_dir, dst_dir;
+    if constexpr (to_weixin) {
+        src_dir = bak_dir;
+        dst_dir = wx_dir;
+    } else {
+        src_dir = wx_dir;
+        dst_dir = bak_dir;
+    }
+    constexpr std::string_view kFileList[] = {"global_config", "global_config.crc"};
+    for (const auto file : kFileList) {
+        fs::path src = src_dir / file;
+        fs::path dst = dst_dir / file;
+        if (fs::exists(dst)) {
+            fs::remove(dst);
+        }
+        if (fs::exists(src)) {
+            CopyFileExW(src.c_str(), dst.c_str(), nullptr, nullptr, nullptr, 0);
+        }
+    }
+}
+
+/**
+ * @brief 微信头像文件在程序备份目录中的文件名
+ */
+inline std::string_view kHeadImgName = "logo.jpg";
+/**
+ * @brief 复制微信头像文件到程序
+ *
+ * @param bak_dir 程序的备份目录
+ */
+inline void CopyHeadImg(const std::filesystem::path& bak_dir) {
+    namespace fs = std::filesystem;
+    auto GetFirstFile = [](const fs::path& dir, std::string_view exclude = {}) {
+        for (const auto& entry : fs::directory_iterator(dir)) {
+            if (!exclude.empty() && entry.path().filename() == exclude) {
+                continue;
+            }
+            return entry.path();
+        }
+        return fs::path{};
+    };
+    // 更新微信头像
+    fs::path logo_dir = GetFirstFile(GetHeadImgDir(), "0");
+    if (!logo_dir.empty()) {
+        fs::path logo_src = GetFirstFile(logo_dir);
+        if (!logo_src.empty()) {
+            fs::path logo_dst = bak_dir / kHeadImgName;
+            CopyFileExW(logo_src.c_str(), logo_dst.c_str(), nullptr, nullptr, nullptr, 0);
+        }
+    }
+}
+
+/**
+ * @brief 获取微信主窗口
+ *
+ * @param pid 进程ID
+ * @return HWND 返回主窗口句柄
+ */
+inline HWND GetMainWindow(DWORD pid) {
+    struct EnumData {
+        DWORD pid;
+        HWND hwnd;
+    };
+    EnumData data{pid, nullptr};
+    EnumWindows(
+        [](HWND hwnd, LPARAM lp) -> BOOL {
+            EnumData* pdata = reinterpret_cast<EnumData*>(lp);
+            DWORD cur_pid = 0;
+            GetWindowThreadProcessId(hwnd, &cur_pid);
+            if (cur_pid != pdata->pid) {
+                return TRUE;
+            }
+            char name[256];
+            GetClassNameA(hwnd, name, sizeof(name));
+            std::string_view str{name};
+            if (!EndWith(str, "QWindowIcon")) {
+                return TRUE;
+            }
+            // 检查是否有渲染窗口
+            HWND render_hwnd = nullptr;
+            EnumChildWindows(
+                hwnd,
+                [](HWND h, LPARAM lparam) {
+                    HWND* prender_hwnd = reinterpret_cast<HWND*>(lparam);
+                    char cname[256];
+                    GetClassNameA(h, cname, 256);
+                    if (std::string_view{cname} == "MMUIRenderSubWindowHW") {
+                        *prender_hwnd = h;
+                        return FALSE;
+                    } else {
+                        return TRUE;
+                    }
+                },
+                reinterpret_cast<LPARAM>(&render_hwnd));
+            if (!render_hwnd) {
+                return TRUE;
+            }
+            // 只有主窗口的情况才返回句柄
+            // 登录成功时某一瞬间可能同时存在登录确认框和主窗口，需要排除这种情况
+            if (!pdata->hwnd) {
+                pdata->hwnd = hwnd;
+                return TRUE;  // 继续遍历看是否存在多个主窗口
+            } else {
+                pdata->hwnd = nullptr;
+                return FALSE;  // 存在多个主窗口，获取失败
+            }
+        },
+        reinterpret_cast<LPARAM>(&data));
+    return data.hwnd;
+}
+/**
+ * @brief 获取微信托盘图标窗口
+ *
+ * @param pid 进程ID
+ * @return HWND 返回托盘图标窗口句柄
+ */
+inline HWND GetTrayWindow(DWORD pid) {
+    struct EnumData {
+        DWORD pid;
+        HWND hwnd;
+    };
+    EnumData data{pid, nullptr};
+    EnumWindows(
+        [](HWND hwnd, LPARAM lp) -> BOOL {
+            EnumData* pdata = reinterpret_cast<EnumData*>(lp);
+            DWORD cur_pid = 0;
+            GetWindowThreadProcessId(hwnd, &cur_pid);
+            if (cur_pid != pdata->pid) {
+                return TRUE;
+            }
+            char name[256];
+            GetClassNameA(hwnd, name, sizeof(name));
+            std::string_view str{name};
+            if (!EndWith(str, "WxTrayIconMessageWindowClass")) {
+                return TRUE;
+            }
+            pdata->hwnd = hwnd;
+            return FALSE;
+        },
+        reinterpret_cast<LPARAM>(&data));
+    return data.hwnd;
+}
+
+}  // namespace weixin

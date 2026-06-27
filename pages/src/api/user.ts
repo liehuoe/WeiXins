@@ -12,7 +12,7 @@ class Api extends ApiBase implements User {
   @Get("获取账号列表") async get(): Promise<User[]> {
     return await this.send();
   }
-  @Get("获取已经登录的账号") async getLoginDirs(): Promise<User["dir"][]> {
+  @Get("获取已经登录的账号") async getDirs(): Promise<User["dir"][]> {
     return await this.send();
   }
   @Set("登录账号") async login(arg: Pick<User, "dir">): Promise<void> {

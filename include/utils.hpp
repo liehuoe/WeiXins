@@ -57,7 +57,8 @@ inline void SetForeground(HWND hwnd) {
 }
 
 /**
- * @brief 为每个类型获取一个单例对象
+ * @brief
+ *
  */
 template <typename Derived>
 class Singleton {
@@ -67,3 +68,4 @@ protected:
         return instance;
     }
 };
+

@@ -402,7 +402,6 @@ private:
         if (login_name.empty()) {
             return;
         }
-        login_name = std::to_string(idx + 1) + ". " + login_name;
         SetWindowTextW(hwnd, cxxui::detail::U82W(login_name).c_str());
     }
     /** 更新微信任务栏的图标 */

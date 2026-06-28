@@ -18,13 +18,13 @@ protected:
     }
 
     void CheckLogin() {
-        timer_ = App::GetInstance().StartTimer(1000, [this]() mutable -> bool {
+        timer_ = App::GetInstance().StartTimer(1000, [this, jump = false]() mutable -> bool {
             struct EnumData {
                 DWORD pid;
-                // 记录窗口句柄数量, 根据数量判断微信 正在登录、已退出还是登录成功
-                int count;
+                int count;   // 记录窗口句柄数量, 根据数量判断微信 正在登录、已退出还是登录成功
+                bool& jump;  // 是否已经模拟按键跳过登录确认框
             };
-            EnumData data{this->GetPid(), 0};
+            EnumData data{this->GetPid(), 0, jump};
             EnumWindows(
                 [](HWND hwnd, LPARAM lp) -> BOOL {
                     EnumData* pdata = reinterpret_cast<EnumData*>(lp);
@@ -58,8 +58,19 @@ protected:
             // 微信正在登录, 继续 timer 检测
             if (data.count <= 6) {
                 // 通过模拟按下enter键跳过登录确认窗口
-                SendMessageW(hwnd, WM_KEYDOWN, VK_RETURN, 0);
-                SendMessageW(hwnd, WM_KEYUP, VK_RETURN, 0);
+                if (!jump) {
+                    jump = true;
+                    // 新账号不会创建头像目录，也不需要模拟按键
+                    if (std::filesystem::exists(GetHeadImgDir())) {
+                        SendMessageW(hwnd, WM_KEYDOWN, VK_RETURN, 0);
+                        SendMessageW(hwnd, WM_KEYUP, VK_RETURN, 0);
+                    }
+                }
+                return true;
+            }
+            // 解决可能获取到隐藏的登录确认框的问题
+            auto style = GetWindowLongW(hwnd, GWL_STYLE);
+            if (!(style & WS_MAXIMIZEBOX)) {
                 return true;
             }
             static_cast<Derived*>(this)->OnLogin(hwnd);

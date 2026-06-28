@@ -9,3 +9,15 @@ img {
   box-sizing: border-box;
   -webkit-user-drag: none;
 }
+
+*::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: #666;
+  border-radius: 3px;
+}

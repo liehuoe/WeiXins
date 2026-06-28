@@ -12,28 +12,12 @@ class WeiXin : public weixin::HotKey<WeiXin> {
 public:
     /**
      * @brief 创建微信进程，启动微信
-     *
-     * @return WeiXin* 每个微信进程对应一个微信对象，指针在OnClose中释放
      */
-    static WeiXin* Create(std::string bak_dir) {
-        namespace fs = std::filesystem;
-        // 复制登录文件到微信
-        weixin::CopyLoginFiles<true>(Config::GetInstance().GetUserDir() / bak_dir);
-        // 删除微信缓存的头像目录
-        fs::path head_imgs = weixin::GetHeadImgDir();
-        if (fs::exists(head_imgs)) {
-            fs::remove_all(head_imgs);
+    static void Create(std::string bak_dir) {
+        waiting_dirs_.emplace_back(std::move(bak_dir));
+        if (waiting_dirs_.size() == 1) {
+            CreateFirst();
         }
-        // 启动微信
-        auto wx = new WeiXin{std::move(bak_dir)};
-        if (!wx->Start()) {
-            delete wx;
-            MessageBoxW(nullptr, L"微信启动失败", L"微信多开助手", MB_OK | MB_ICONERROR);
-            return nullptr;
-        }
-        wx->CheckLogin();
-
-        return wx;
     }
     /**
      * @brief 检测是否所有微信都已经退出
@@ -53,12 +37,29 @@ public:
      * @return const std::string&
      */
     const std::string& GetDir() const noexcept { return dir_; }
+    /**
+     * @brief 获取正在排队的微信的备份目录列表
+     *
+     * @return const std::vector<std::string>&
+     */
+    static const std::vector<std::string>& GetWaitingDirs() noexcept { return waiting_dirs_; }
+    using CloseHandler = void (*)();
+    /**
+     * @brief 设置微信退出时的处理函数
+     *
+     * @param handler
+     */
+    static void SetCloseHandler(CloseHandler handler) noexcept { close_handler_ = handler; }
 
 protected:
     friend class weixin::CloseChecker<WeiXin>;
     /** 微信退出时触发 */
     void OnClose(HANDLE handle) {
         Base::OnClose(handle);
+        CheckWaitingDirs();
+        if (close_handler_) {
+            close_handler_();
+        }
         delete this;
     }
 
@@ -67,10 +68,13 @@ protected:
     void OnLogin(HWND hwnd) {
         Base::OnLogin(hwnd);
 
-        weixin::CopyLoginFiles<false>(dir_);  // 更新登录文件
-        weixin::CopyHeadImg(dir_);            // 更新头像
-        UpdateTitle();                        // 更新任务栏标题
-        UpdateIcon();                         // 更新任务栏图标
+        auto dir_path = Config::GetInstance().GetUserDir() / dir_;
+        weixin::CopyLoginFiles<false>(dir_path);  // 更新登录文件
+        weixin::CopyHeadImg(dir_path);            // 更新头像
+        UpdateTitle();                            // 更新任务栏标题
+        UpdateIcon();                             // 更新任务栏图标
+
+        CheckWaitingDirs();
     }
 
 private:
@@ -87,6 +91,10 @@ private:
     /** 更新微信任务栏的标题 */
     void UpdateTitle() {
         auto root = nlohmann::json::parse(std::ifstream{Config::GetInstance().GetCfgPath()});
+        if (!root.is_array() && !root.contains("user")) {
+            return;
+        }
+        root = root["user"];
         if (!root.is_array()) {
             return;
         }
@@ -161,7 +169,44 @@ private:
         }
         icon_.value = icon;
         LPARAM lp = reinterpret_cast<LPARAM>(icon);
-        PostMessageW(GetMainHwnd(), WM_SETICON, ICON_BIG, lp);
-        PostMessageW(GetMainHwnd(), WM_SETICON, ICON_SMALL, lp);
+        SendMessageW(GetMainHwnd(), WM_SETICON, ICON_BIG, lp);
+        SendMessageW(GetMainHwnd(), WM_SETICON, ICON_SMALL, lp);
     }
+
+private:
+    /** 需要登录的微信列表 */
+    inline static std::vector<std::string> waiting_dirs_;
+    /** 创建队列中的第一个微信 */
+    static void CreateFirst() noexcept {
+        namespace fs = std::filesystem;
+        // 复制登录文件到微信
+        weixin::CopyLoginFiles<true>(Config::GetInstance().GetUserDir() / waiting_dirs_[0]);
+        // 删除微信缓存的头像目录
+        fs::path head_imgs = weixin::GetHeadImgDir();
+        if (fs::exists(head_imgs)) {
+            fs::remove_all(head_imgs);
+        }
+        // 启动微信
+        auto wx = new WeiXin{waiting_dirs_[0]};
+        if (!wx->Start()) {
+            delete wx;
+            waiting_dirs_.clear();  // 清空后续登录
+            MessageBoxW(nullptr, L"微信启动失败", L"微信多开助手", MB_OK | MB_ICONERROR);
+            return;
+        }
+        wx->CheckLogin();
+    }
+    /** 检查是否还有需要启动的微信 */
+    void CheckWaitingDirs() noexcept {
+        if (waiting_dirs_.empty() || dir_ != waiting_dirs_[0]) {
+            return;
+        }
+        waiting_dirs_.erase(waiting_dirs_.begin());
+        if (!waiting_dirs_.empty()) {
+            CreateFirst();
+        }
+    }
+
+private:
+    inline static CloseHandler close_handler_ = nullptr;
 };

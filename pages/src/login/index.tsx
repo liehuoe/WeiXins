@@ -11,6 +11,7 @@ import { getLatestVersion } from "./check_versoin";
 
 export default function Login() {
   const data = new Data();
+  const [selUser, setSelUser] = createSignal<UserData | null>(null);
   onMount(() => data.refresh());
   EnableFocusList();
 
@@ -33,13 +34,12 @@ export default function Login() {
       </button>
     );
   }
-  const [selUser, setSelUser] = createSignal<UserData | null>(null);
-  function ReadItem(props: { user: UserData }) {
+  function ReadItem(props: { user: UserData; index: number }) {
     return (
       <Item
         ref={(el) => data.userDoms.push(el)}
         class={`${props.user.login ? "bg-yellow-300" : "bg-green"} shadow-dark shadow-2xl hover:shadow-lg hover:bg-op-70 cursor-pointer dark:shadow-black`}
-        onClick={() => data.login(props.user)}
+        onClick={() => data.login(props.user, props.index)}
         onContextMenu={(e) => {
           e.preventDefault();
           e.stopImmediatePropagation();
@@ -47,6 +47,11 @@ export default function Login() {
           showContextMenu(e);
         }}
       >
+        <Show when={data.isMulti}>
+          <div
+            class={`text-lg ${data.selected[props.index] ? "i-mdi-checkbox-marked-outline" : "i-mdi-checkbox-blank-outline"}`}
+          ></div>
+        </Show>
         <img
           class="w-10 h-10 border-rd-2 bg-white"
           style="border: solid #fff 1px"
@@ -130,7 +135,7 @@ export default function Login() {
       if (latest !== cur) {
         showTip({
           msg: `发现新版本：v${latest}`,
-          icon: "i-mdi-warning bg-orange",
+          icon: "i-mdi-info bg-blue",
         });
       }
     });
@@ -168,44 +173,37 @@ export default function Login() {
   return (
     <>
       <div
-        class="z-2 p-1 gap-1 flex-col h-full"
+        class="z-2 p-1 gap-1 flex-col h-full overflow-y-auto"
         oncontextmenu={() => setSelUser(null)}
       >
         <TransitionGroup
           onEnter={(el, done) => {
-            const a = el.animate(
-              [
-                { opacity: 0, transform: "translateY(-100%)" },
-                { opacity: 1, transform: "translateY(0)" },
-              ],
-              {
-                duration: 300,
-                easing: "ease-in-out",
-              },
-            );
+            const a = el.animate([{ opacity: 0 }, { opacity: 1 }], {
+              duration: 300,
+            });
             a.finished.then(done);
           }}
-          onExit={(el, done) => {
-            const a = el.animate(
-              [
-                { opacity: 1, transform: "translateY(0)" },
-                { opacity: 0, transform: "translateY(-100%)" },
-              ],
-              {
-                duration: 300,
-                easing: "ease-in-out",
-              },
-            );
-            a.finished.then(done);
-          }}
+          onExit={(_, done) => done()}
         >
-          <For each={data.users}>{(user) => <ReadItem user={user} />}</For>
+          <For each={data.users}>
+            {(user, index) => <ReadItem user={user} index={index()} />}
+          </For>
         </TransitionGroup>
       </div>
       <Show when={!data.users?.length}>
         <EmptyText>
           {data.users ? "单击右键添加账号" : "正在加载数据"}
         </EmptyText>
+      </Show>
+      <Show when={data.isMulti}>
+        <div class="p-1">
+          <Item
+            class={`${data.selected.some((v, i) => v && !data.users![i].login) ? "bg-blue" : "bg-blue-1"} h-10 shadow-dark shadow-2xl hover:shadow-lg hover:bg-op-70 cursor-pointer dark:shadow-black flex justify-center`}
+            onClick={() => data.multiLogin()}
+          >
+            <strong class="text-lg">一键登录</strong>
+          </Item>
+        </div>
       </Show>
       <EditItem />
       <ContextMenu when={data.status === Status.Normal}>
@@ -236,13 +234,23 @@ export default function Login() {
           添加账号
         </MenuItem>
         <MenuItem
+          icon={
+            data.isMulti
+              ? "i-mdi-checkbox-marked-outline bg-green"
+              : "i-mdi-checkbox-blank-outline bg-red"
+          }
+          onClick={() => (data.isMulti = !data.isMulti)}
+        >
+          多选模式
+        </MenuItem>
+        <MenuItem
           icon="i-mdi-about-outline"
           onClick={() => (data.status = Status.About)}
         >
           支持作者
         </MenuItem>
       </ContextMenu>
-      <Tips />
+      <Tips class={data.isMulti ? "bottom-12" : "bottom-2"} />
       <About />
     </>
   );

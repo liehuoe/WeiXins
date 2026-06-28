@@ -161,15 +161,8 @@ inline HWND GetMainWindow(DWORD pid) {
             if (!render_hwnd) {
                 return TRUE;
             }
-            // 只有主窗口的情况才返回句柄
-            // 登录成功时某一瞬间可能同时存在登录确认框和主窗口，需要排除这种情况
-            if (!pdata->hwnd) {
-                pdata->hwnd = hwnd;
-                return TRUE;  // 继续遍历看是否存在多个主窗口
-            } else {
-                pdata->hwnd = nullptr;
-                return FALSE;  // 存在多个主窗口，获取失败
-            }
+            pdata->hwnd = hwnd;
+            return FALSE;
         },
         reinterpret_cast<LPARAM>(&data));
     return data.hwnd;

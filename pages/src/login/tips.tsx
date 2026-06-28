@@ -8,9 +8,9 @@ interface Tip {
 }
 const [tips, setTips] = createSignal<Tip[]>([]);
 
-function Tips() {
+function Tips(props: { class?: string }) {
   return (
-    <div class="z-101 gap-1 fixed bottom-2 left-1 right-1 flex-col items-center">
+    <div class={`z-101 gap-1 fixed left-1 right-1 flex-col items-center ${props.class}`}>
       <TransitionGroup
         onEnter={(el, done) => {
           const a = el.animate(

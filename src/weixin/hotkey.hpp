@@ -78,8 +78,17 @@ private:
             Toggle();
         } else {
             auto self = static_cast<HotKey*>(Base::GetAllObjs()[id - 1]);
+            HWND hwnd = self->GetMainHwnd();
             if (self) {
-                self->SetForeground();
+                if (IsWindowVisible(hwnd) && hwnd == GetForegroundWindow()) {
+                    // 多次ESC关闭一些弹出菜单
+                    SendMessageW(hwnd, WM_KEYDOWN, VK_ESCAPE, 0);
+                    SendMessageW(hwnd, WM_KEYUP, VK_ESCAPE, 0);
+                    SendMessageW(hwnd, WM_KEYDOWN, VK_ESCAPE, 0);
+                    SendMessageW(hwnd, WM_KEYUP, VK_ESCAPE, 0);
+                } else {
+                    self->SetForeground();
+                }
             }
         }
     }
@@ -106,11 +115,10 @@ private:
     }
     /** 设置微信窗口到前台 */
     void SetForeground() {
-        if (IsWindowVisible(hwnd_)) {
-            ::SetForeground(hwnd_);
-        } else {
+        if (!IsWindowVisible(hwnd_)) {
             SendMessageW(tray_, WM_APP + 901, 0, 0x0400);
         }
+        ::SetForeground(hwnd_);
     }
     /** 切换微信窗口 */
     static void Toggle() {

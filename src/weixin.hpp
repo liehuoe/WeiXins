@@ -1,13 +1,9 @@
 #pragma once
 
-#include <fstream>
-#include <nlohmann/json.hpp>
-#include <config.hpp>
-#include "weixin/hotkey.hpp"
-#include <gdiplus.h>
+#include "weixin/title.hpp"
 
-class WeiXin : public weixin::HotKey<WeiXin> {
-    using Base = weixin::HotKey<WeiXin>;
+class WeiXin : public weixin::Title<WeiXin> {
+    using Base = weixin::Title<WeiXin>;
 
 public:
     /**
@@ -31,12 +27,6 @@ public:
      * @return const std::vector<WeiXin*>&
      */
     static const std::vector<WeiXin*>& GetAllObjs() noexcept { return Base::GetAllObjs(); }
-    /**
-     * @brief 获取登录文件的备份目录
-     *
-     * @return const std::string&
-     */
-    const std::string& GetDir() const noexcept { return dir_; }
     /**
      * @brief 获取正在排队的微信的备份目录列表
      *
@@ -67,111 +57,12 @@ protected:
     /** 微信登录成功时触发 */
     void OnLogin(HWND hwnd) {
         Base::OnLogin(hwnd);
-
-        auto dir_path = Config::GetInstance().GetUserDir() / dir_;
-        weixin::CopyLoginFiles<false>(dir_path);  // 更新登录文件
-        weixin::CopyHeadImg(dir_path);            // 更新头像
-        UpdateTitle();                            // 更新任务栏标题
-        UpdateIcon();                             // 更新任务栏图标
-
         CheckWaitingDirs();
     }
 
 private:
-    std::string dir_;
     WeiXin(std::string dir)
-        : dir_(std::move(dir)) {
-        if (!gdi_token_) {
-            Gdiplus::GdiplusStartupInput startupInput;
-            startupInput.GdiplusVersion = 1;
-            Gdiplus::GdiplusStartup(&gdi_token_, &startupInput, nullptr);
-        }
-    }
-
-    /** 更新微信任务栏的标题 */
-    void UpdateTitle() {
-        auto root = nlohmann::json::parse(std::ifstream{Config::GetInstance().GetCfgPath()});
-        if (!root.is_array() && !root.contains("user")) {
-            return;
-        }
-        root = root["user"];
-        if (!root.is_array()) {
-            return;
-        }
-        std::string login_name;
-        for (const auto& item : root) {
-            std::string name = item.value("name", "");
-            std::string dir = item.value("dir", "");
-            if (name.empty() || dir.empty()) {
-                continue;
-            }
-            if (dir != dir_) {
-                continue;
-            }
-            login_name = std::move(name);
-            break;
-        }
-        if (login_name.empty()) {
-            return;
-        }
-        SetWindowTextW(GetMainHwnd(), cxxui::detail::U82W(login_name).c_str());
-    }
-    struct Icon {
-        HICON value = nullptr;
-        ~Icon() {
-            if (value) {
-                DestroyIcon(value);
-            }
-        }
-    };
-    inline static ULONG_PTR gdi_token_ = 0;
-    Icon icon_;
-    void UpdateIcon() {
-        // 加载图片
-        auto jpg_path = Config::GetInstance().GetUserDir() / dir_ / weixin::kHeadImgName;
-        using namespace Gdiplus;
-        struct Jpg {
-            Bitmap* value;
-            Jpg(Bitmap* val) noexcept
-                : value(val) {}
-            ~Jpg() {
-                if (value) {
-                    delete value;
-                }
-            }
-        };
-        Jpg jpg = Bitmap::FromFile(jpg_path.c_str());
-        if (!jpg.value || jpg.value->GetLastStatus() != Ok) {
-            return;
-        }
-        // 裁剪图片
-        constexpr int size = 256;
-        constexpr int radius = size / 2;
-        Jpg resized = new Bitmap(size, size, PixelFormat32bppARGB);
-        Graphics graphics(resized.value);
-        graphics.SetSmoothingMode(SmoothingModeAntiAlias);
-        graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
-        // 圆角
-        graphics.Clear(Color(0, 0, 0, 0));
-        GraphicsPath path;
-        path.AddArc(0, 0, radius, radius, 180, 90);
-        path.AddArc(0 + size - radius, 0, radius, radius, 270, 90);
-        path.AddArc(0 + size - radius, 0 + size - radius, radius, radius, 0, 90);
-        path.AddArc(0, 0 + size - radius, radius, radius, 90, 90);
-        path.CloseFigure();
-        graphics.SetClip(&path, CombineModeReplace);
-
-        graphics.DrawImage(jpg.value, 0, 0, size, size);
-        // 获取 HICON
-        HICON icon;
-        if (resized.value->GetHICON(&icon) != Ok) {
-            return;
-        }
-        icon_.value = icon;
-        LPARAM lp = reinterpret_cast<LPARAM>(icon);
-        SendMessageW(GetMainHwnd(), WM_SETICON, ICON_BIG, lp);
-        SendMessageW(GetMainHwnd(), WM_SETICON, ICON_SMALL, lp);
-    }
+        : Base(std::move(dir)) {}
 
 private:
     /** 需要登录的微信列表 */
@@ -198,7 +89,7 @@ private:
     }
     /** 检查是否还有需要启动的微信 */
     void CheckWaitingDirs() noexcept {
-        if (waiting_dirs_.empty() || dir_ != waiting_dirs_[0]) {
+        if (waiting_dirs_.empty() || this->GetDir() != waiting_dirs_[0]) {
             return;
         }
         waiting_dirs_.erase(waiting_dirs_.begin());

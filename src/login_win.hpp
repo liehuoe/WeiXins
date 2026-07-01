@@ -146,6 +146,14 @@ private:
             // 更新或添加账号信息
             if (it != data_["user"].end()) {
                 (*it)["name"] = name;  // 更新
+                // 更新正在运行的微信
+                const auto& objs = WeiXin::GetAllObjs();
+                auto obj_it = std::find_if(objs.begin(), objs.end(), [&dir](const auto& obj) {
+                    return obj->GetDir() == dir;
+                });
+                if (obj_it != objs.end()) {
+                    (*obj_it)->UpdateTitle(name);
+                }
             } else {
                 data_["user"].emplace_back(arg);  // 添加
             }

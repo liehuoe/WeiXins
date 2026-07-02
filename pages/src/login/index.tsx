@@ -5,9 +5,8 @@ import { Icon } from "./icon";
 import { EnableFocusList } from "./focus_list";
 import { Data, Status, type UserData } from "./data";
 import { ContextMenu, MenuItem, showContextMenu } from "./ctx_menu";
-import { showTip, Tips } from "./tips";
-import { api } from "../api";
-import { getLatestVersion } from "./check_versoin";
+import { Tips } from "./tips";
+import { About } from "./about";
 
 export default function Login() {
   const data = new Data();
@@ -126,50 +125,6 @@ export default function Login() {
       </Transition>
     );
   }
-  function About() {
-    const [version, setVersion] = createSignal<string>("");
-    onMount(async () => {
-      const cur = await api.app.version();
-      setVersion(cur);
-      const latest = await getLatestVersion();
-      if (latest !== cur) {
-        showTip({
-          msg: `发现新版本：v${latest}`,
-          icon: "i-mdi-info bg-blue",
-        });
-      }
-    });
-    return (
-      <Transition
-        onEnter={(el, done) => {
-          const a = el.animate([{ opacity: 0 }, { opacity: 1 }], {
-            duration: 300,
-          });
-          a.finished.then(done);
-        }}
-        onExit={(el, done) => {
-          const a = el.animate([{ opacity: 1 }, { opacity: 0 }], {
-            duration: 300,
-          });
-          a.finished.then(done);
-        }}
-      >
-        <Show when={data.status === Status.About}>
-          <div
-            class="z-100 bg-black/80 fixed inset-0 flex-col items-center justify-center text-white"
-            onclick={() => (data.status = Status.Normal)}
-          >
-            <div>打赏作者</div>
-            <img class="max-w-1/2 max-h-1/3" src="/1002.jpg" />
-            <p />
-            <div>商业合作请加微信</div>
-            <img class="max-w-1/2 max-h-1/3" src="/1001.jpg" />
-            <div>程序版本：{version()}</div>
-          </div>
-        </Show>
-      </Transition>
-    );
-  }
   return (
     <>
       <div
@@ -251,7 +206,10 @@ export default function Login() {
         </MenuItem>
       </ContextMenu>
       <Tips class={data.isMulti ? "bottom-12" : "bottom-2"} />
-      <About />
+      <About
+        when={data.status === Status.About}
+        onClose={() => (data.status = Status.Normal)}
+      />
     </>
   );
 }

@@ -55,6 +55,7 @@ private:
         map_.bind("/user/login", [this](cxxui::json& arg) { return OnUserLogin(arg); });
         map_.bind("/user/set", [this](cxxui::json& arg) { return OnUserSet(arg); });
         map_.bind("/user/setMulti", [this](cxxui::json& arg) { return OnUserSetMulti(arg); });
+        map_.bind("/user/move", [this](cxxui::json& arg) { return OnUserMove(arg); });
         OnJsMsg(map_.GetHandler());
     }
     /*
@@ -173,6 +174,37 @@ private:
         if (arg.contains("selected")) {
             data_["selected"] = arg.at("selected");
         }
+        SaveData();
+        return nullptr;
+    }
+    /*
+    移动账号
+    arg: {from: number; to: number;}
+    ret: null
+    */
+    cxxui::json OnUserMove(cxxui::json& arg) {
+        int from = arg.value("from", -1);
+        int to = arg.value("to", -1);
+        if (from < 0 || to < 0 || from == to) {
+            return nullptr;
+        }
+
+        auto& users = data_["user"];
+        auto size = static_cast<int>(users.size());
+        if (from >= size || to >= size) {
+            return nullptr;
+        }
+        std::swap(users[from], users[to]);
+        // TODO(v3.0): selected 存储 dir 列表
+        auto& selected = data_["selected"];
+        auto from_it = std::find(selected.begin(), selected.end(), from);
+        auto to_it = std::find(selected.begin(), selected.end(), to);
+        if (from_it != selected.end() && to_it == selected.end()) {
+            *from_it = to;
+        } else if (to_it != selected.end() && from_it == selected.end()) {
+            *to_it = from;
+        }
+
         SaveData();
         return nullptr;
     }

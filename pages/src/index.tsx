@@ -5,8 +5,12 @@ import { render } from "solid-js/web";
 import login from "./login";
 
 // 禁止拖拽文件到窗口
-document.addEventListener("dragover", (e) => e.preventDefault());
-document.addEventListener("drop", (e) => e.preventDefault());
+document.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  if (e.dataTransfer) {
+    e.dataTransfer.dropEffect = "none";
+  }
+});
 
 const route = { login };
 

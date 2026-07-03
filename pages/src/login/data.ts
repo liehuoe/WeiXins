@@ -176,4 +176,22 @@ export class Data {
     }, 1000);
   }
   delayTimer: number | null = null;
+  /** 移动账号 */
+  async move(from: number, to: number) {
+    const users = [...(this.users || [])];
+    const [removed] = users.splice(from, 1);
+    users.splice(to, 0, removed);
+
+    const selected = [...this.selected];
+    const [sel] = selected.splice(from, 1);
+    selected.splice(to, 0, sel);
+
+    try {
+      await api.user.move({ from, to });
+      this.users = users;
+      this.selected = selected;
+    } catch {
+      showTip({ msg: "移动账号出错", icon: "i-mdi-error bg-red" });
+    }
+  }
 }

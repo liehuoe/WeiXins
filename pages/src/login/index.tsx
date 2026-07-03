@@ -21,6 +21,11 @@ export default function Login() {
     ref?: (el: HTMLElement) => void;
     onClick?: (e: MouseEvent) => void;
     onContextMenu?: (e: MouseEvent) => void;
+    draggable?: boolean;
+    onDragStart?: (e: DragEvent) => void;
+    onDragOver?: (e: DragEvent) => void;
+    onDrop?: (e: DragEvent) => void;
+    onDragEnd?: (e: DragEvent) => void;
   }) {
     return (
       <button
@@ -28,16 +33,80 @@ export default function Login() {
         class={`transition-all w-full border-none flex items-center border-rd-2 p-1 gap-1 ${props.class}`}
         onclick={props.onClick}
         oncontextmenu={props.onContextMenu}
+        draggable={props.draggable}
+        onDragStart={props.onDragStart}
+        onDragOver={props.onDragOver}
+        onDrop={props.onDrop}
+        onDragEnd={props.onDragEnd}
       >
         {props.children}
       </button>
     );
   }
+  let dragIndex: number | null = null; // 拖拽的索引
+  let dragDom: HTMLElement | null = null; // 拖拽添加的元素
   function ReadItem(props: { user: UserData; index: number }) {
+    function OnDragStart(e: DragEvent) {
+      dragIndex = props.index;
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = "move";
+      }
+    }
+    function OnDragEnd() {
+      dragIndex = null;
+      if (dragDom) {
+        dragDom.remove();
+        dragDom = null;
+      }
+    }
+    function OnDragDrop(e: DragEvent) {
+      e.preventDefault();
+      const fromIndex = dragIndex;
+      const toIndex = props.index;
+      if (fromIndex === null || fromIndex === toIndex) {
+        return;
+      }
+      data.move(fromIndex, toIndex);
+
+      OnDragEnd();
+    }
+    function OnDragOver(e: DragEvent) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = "move";
+      }
+      if (dragIndex === null || !e.target) {
+        return;
+      }
+
+      dragDom?.remove();
+      if (dragIndex === props.index) {
+        return;
+      }
+      const dom = e.target as HTMLElement;
+      dragDom = document.createElement("div");
+      dragDom.className = "h-10 bg-green/50 border-rd-2";
+      dragDom.ondragover = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed = "move";
+        }
+      };
+      dragDom.ondrop = OnDragDrop;
+      if (props.index < dragIndex) {
+        dom.before(dragDom);
+      } else {
+        dom.after(dragDom);
+      }
+    }
+
     return (
       <Item
         ref={(el) => data.userDoms.push(el)}
-        class={`${props.user.login ? "bg-yellow-300" : "bg-green"} shadow-dark shadow-2xl hover:shadow-lg hover:bg-op-70 cursor-pointer dark:shadow-black`}
+        class={`${props.user.login ? "bg-yellow-300" : "bg-green"}
+          shadow-dark shadow-2xl hover:shadow-lg hover:bg-op-70 cursor-pointer dark:shadow-black`}
         onClick={() => data.login(props.user, props.index)}
         onContextMenu={(e) => {
           e.preventDefault();
@@ -45,18 +114,26 @@ export default function Login() {
           setSelUser(props.user);
           showContextMenu(e);
         }}
+        draggable
+        onDragStart={OnDragStart}
+        onDragEnd={OnDragEnd}
+        onDragOver={OnDragOver}
+        onDrop={OnDragDrop}
       >
         <Show when={data.isMulti}>
           <div
-            class={`text-lg ${data.selected[props.index] ? "i-mdi-checkbox-marked-outline" : "i-mdi-checkbox-blank-outline"}`}
+            class={`text-lg pointer-events-none
+                ${data.selected[props.index] ? "i-mdi-checkbox-marked-outline" : "i-mdi-checkbox-blank-outline"}`}
           ></div>
         </Show>
         <img
-          class="w-10 h-10 border-rd-2 bg-white"
+          class="w-10 h-10 border-rd-2 bg-white pointer-events-none"
           style="border: solid #fff 1px"
           src={`/${props.user.dir}.head_img`}
         />
-        <div class="items-center flex-1 overflow-hidden">{props.user.name}</div>
+        <div class="items-center flex-1 overflow-hidden pointer-events-none">
+          {props.user.name}
+        </div>
       </Item>
     );
   }

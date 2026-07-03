@@ -39,5 +39,11 @@ class Api extends ApiBase implements User {
   }): Promise<void> {
     return await this.send(arg);
   }
+  @Set("移动账号") async move(arg: {
+    from: number;
+    to: number;
+  }): Promise<void> {
+    return await this.send(arg);
+  }
 }
 export const user = Api.prototype;

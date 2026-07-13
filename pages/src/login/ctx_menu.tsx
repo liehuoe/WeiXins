@@ -1,4 +1,4 @@
-export { ContextMenu, MenuItem, showContextMenu };
+export { ContextMenu, MenuItem, menu };
 import { createSignal, onCleanup, onMount } from "solid-js";
 
 interface Point {
@@ -8,13 +8,39 @@ interface Point {
 const [menuPos, setMenuPos] = createSignal<Point | null>(null);
 let menuDom: HTMLElement;
 
+const menu = {
+  show(e: MouseEvent) {
+    e.preventDefault();
+    let x = 0;
+    let y = 0;
+    const menu = menuDom.getBoundingClientRect();
+    if (window.innerWidth - e.x >= menu.width) {
+      x = e.x;
+    } else if (e.x >= menu.width) {
+      x = e.x - menu.width;
+    }
+    if (window.innerHeight - e.y >= menu.height) {
+      y = e.y;
+    } else if (e.y >= menu.height) {
+      y = e.y - menu.height;
+    }
+    setMenuPos({ x, y });
+  },
+  isVisible() {
+    return menuPos() !== null;
+  },
+};
+
+function onClickOutside() {
+  setMenuPos(null);
+}
 function ContextMenu(props: { when?: boolean; children: any }) {
   onMount(() => {
-    document.addEventListener("contextmenu", showContextMenu);
+    document.addEventListener("contextmenu", menu.show);
     document.addEventListener("click", onClickOutside);
   });
   onCleanup(() => {
-    document.removeEventListener("contextmenu", showContextMenu);
+    document.removeEventListener("contextmenu", menu.show);
     document.removeEventListener("click", onClickOutside);
   });
   return (
@@ -51,25 +77,4 @@ function MenuItem(props: {
       <div>{props.children}</div>
     </div>
   );
-}
-
-function showContextMenu(e: MouseEvent) {
-  e.preventDefault();
-  let x = 0;
-  let y = 0;
-  const menu = menuDom.getBoundingClientRect();
-  if (window.innerWidth - e.x >= menu.width) {
-    x = e.x;
-  } else if (e.x >= menu.width) {
-    x = e.x - menu.width;
-  }
-  if (window.innerHeight - e.y >= menu.height) {
-    y = e.y;
-  } else if (e.y >= menu.height) {
-    y = e.y - menu.height;
-  }
-  setMenuPos({ x, y });
-}
-function onClickOutside() {
-  setMenuPos(null);
 }

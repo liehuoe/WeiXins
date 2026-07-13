@@ -50,6 +50,7 @@ private:
     }
     void InitJsMsg() {
         map_.bind("/app/version", OnAppVersion);
+        map_.bind("/app/drag", [this](cxxui::json& arg) { return OnAppDrag(arg); });
         map_.bind("/user/get", [this](cxxui::json& arg) { return OnUserGet(arg); });
         map_.bind("/user/getDirs", OnUserGetDirs);
         map_.bind("/user/login", [this](cxxui::json& arg) { return OnUserLogin(arg); });
@@ -64,6 +65,16 @@ private:
     ret: string 版本号
     */
     static cxxui::json OnAppVersion(cxxui::json&) { return PROJECT_VERSION; }
+    /*
+    触发窗口拖拽
+    arg: null
+    ret: null
+    */
+    cxxui::json OnAppDrag(cxxui::json&) {
+        ReleaseCapture();
+        PostMessageW(GetHandle(), WM_SYSCOMMAND, SC_MOVE + HTCAPTION, 0);
+        return nullptr;
+    }
     /*
     获取账号列表
     arg: null

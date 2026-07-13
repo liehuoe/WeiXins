@@ -4,9 +4,10 @@ import { EmptyText } from "./empty_text";
 import { Icon } from "./icon";
 import { EnableFocusList } from "./focus_list";
 import { Data, Status, type UserData } from "./data";
-import { ContextMenu, MenuItem, showContextMenu } from "./ctx_menu";
+import { ContextMenu, MenuItem, menu } from "./ctx_menu";
 import { Tips } from "./tips";
 import { About } from "./about";
+import { api } from "../api";
 
 export default function Login() {
   const data = new Data();
@@ -112,7 +113,7 @@ export default function Login() {
           e.preventDefault();
           e.stopImmediatePropagation();
           setSelUser(props.user);
-          showContextMenu(e);
+          menu.show(e);
         }}
         draggable
         onDragStart={OnDragStart}
@@ -202,11 +203,24 @@ export default function Login() {
       </Transition>
     );
   }
+  async function onDragWindow(e: MouseEvent) {
+    if (e.target !== e.currentTarget) {
+      return; // 子元素不触发
+    }
+    if (e.button !== 0) {
+      return; // 只有左键才触发
+    }
+    if (menu.isVisible()) {
+      return; // 显示菜单不触发
+    }
+    await api.app.drag();
+  }
   return (
     <>
       <div
         class="z-2 p-1 gap-1 flex-col h-full overflow-y-auto"
         oncontextmenu={() => setSelUser(null)}
+        onmousedown={onDragWindow}
       >
         <TransitionGroup
           onEnter={(el, done) => {

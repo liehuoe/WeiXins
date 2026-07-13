@@ -35,7 +35,7 @@ public:
         }
         // 通知已经运行的进程
         for (int i = 0; i < 3; i++) {
-            HWND hwnd = FindWindowW(CXXUI_WIN32_CLASS_NAME, L"");
+            HWND hwnd = FindWindowW(App::GetWin32ClassName().data(), L"");
             if (!hwnd) {
                 Sleep(1000);
                 continue;

@@ -21,3 +21,6 @@ img {
   background: #666;
   border-radius: 3px;
 }
+*::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}

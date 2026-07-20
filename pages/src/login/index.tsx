@@ -203,6 +203,34 @@ export default function Login() {
       </Transition>
     );
   }
+  function isScroll(e: MouseEvent) {
+    const dom = e.currentTarget as HTMLElement;
+    const rect = dom.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    // 计算是否有垂直/水平滚动条
+    const hasVerticalScrollbar = dom.scrollHeight > dom.clientHeight;
+    const hasHorizontalScrollbar = dom.scrollWidth > dom.clientWidth;
+    // 获取滚动条宽度（兼容各浏览器）
+    const scrollbarWidth = dom.offsetWidth - dom.clientWidth;
+    const scrollbarHeight = dom.offsetHeight - dom.clientHeight;
+
+    const onVerticalScrollbar =
+      hasVerticalScrollbar &&
+      x >= rect.right - scrollbarWidth &&
+      x <= rect.right &&
+      y >= rect.top &&
+      y <= rect.bottom;
+
+    const onHorizontalScrollbar =
+      hasHorizontalScrollbar &&
+      y >= rect.bottom - scrollbarHeight &&
+      y <= rect.bottom &&
+      x >= rect.left &&
+      x <= rect.right;
+
+    return onVerticalScrollbar || onHorizontalScrollbar;
+  }
   async function onDragWindow(e: MouseEvent) {
     if (e.target !== e.currentTarget) {
       return; // 子元素不触发
@@ -210,6 +238,10 @@ export default function Login() {
     if (e.button !== 0) {
       return; // 只有左键才触发
     }
+    if (isScroll(e)) {
+      return; // 滚动条不触发
+    }
+
     if (menu.isVisible()) {
       return; // 显示菜单不触发
     }

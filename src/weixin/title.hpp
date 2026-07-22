@@ -112,7 +112,7 @@ private:
         }
         // 裁剪图片
         constexpr int size = 256;
-        constexpr int radius = size / 2;
+        constexpr int radius = 100;
         Jpg resized = new Bitmap(size, size, PixelFormat32bppARGB);
         Graphics graphics(resized.value);
         graphics.SetSmoothingMode(SmoothingModeAntiAlias);

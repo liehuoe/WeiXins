@@ -21,10 +21,11 @@ protected:
         timer_ = App::GetInstance().StartTimer(1000, [this, jump = false]() mutable -> bool {
             struct EnumData {
                 DWORD pid;
-                int count;   // 记录窗口句柄数量, 根据数量判断微信 正在登录、已退出还是登录成功
-                bool& jump;  // 是否已经模拟按键跳过登录确认框
+                bool exited;  // 判断进程是否已经退出
+                HWND hwnd;    // 查找到的主窗口句柄
+                bool& jump;   // 是否已经模拟按键跳过登录确认框
             };
-            EnumData data{this->GetPid(), 0, jump};
+            EnumData data{this->GetPid(), true, nullptr, jump};
             EnumWindows(
                 [](HWND hwnd, LPARAM lp) -> BOOL {
                     EnumData* pdata = reinterpret_cast<EnumData*>(lp);
@@ -33,47 +34,46 @@ protected:
                     if (pid != pdata->pid) {
                         return TRUE;
                     }
-                    pdata->count++;
+                    pdata->exited = false;
 
-#ifdef _DEBUG
-                    char name[256];
-                    fprintf(stderr, "hwnd: %p, ", hwnd);
-                    GetWindowTextA(hwnd, name, sizeof(name));
-                    fprintf(stderr, "title: %30s, ", name);
-                    GetClassNameA(hwnd, name, sizeof(name));
-                    fprintf(stderr, "class: %s\n", name);
-#endif
-                    return TRUE;
+                    wchar_t name[256], title[256];
+                    GetClassNameW(hwnd, name, sizeof(name));
+                    if (!EndWith(name, L"QWindowIcon")) {
+                        return TRUE;
+                    }
+                    GetWindowTextW(hwnd, title, sizeof(title));
+                    if (title != std::wstring_view{L"微信"}) {
+                        return TRUE;
+                    }
+                    pdata->hwnd = hwnd;
+                    return FALSE;
                 },
                 reinterpret_cast<LPARAM>(&data));
+
+            Debug("exited: %d, ", data.exited);
+            Debug("hwnd: %p, ", static_cast<void*>(data.hwnd));
+            Debug("jump: %d, ", data.jump);
             // 微信已经退出，结束 timer
-            if (data.count == 0) {
+            if (data.exited) {
                 return false;
             }
-            // 确认微信主窗口已经创建
-            HWND hwnd = weixin::GetMainWindow(data.pid);
-            if (!hwnd) {
+            // 微信正在登录, 继续 timer 检测
+            if (!data.hwnd) {
                 return true;
             }
-            // 微信正在登录, 继续 timer 检测
-            if (data.count <= 6) {
+            if (!(GetWindowLongW(data.hwnd, GWL_STYLE) & WS_MAXIMIZEBOX)) {
                 // 通过模拟按下enter键跳过登录确认窗口
-                if (!jump) {
+                if (!jump && IsWindowVisible(data.hwnd)) {
                     jump = true;
                     // 新账号不会创建头像目录，也不需要模拟按键
                     if (std::filesystem::exists(GetHeadImgDir())) {
-                        SendMessageW(hwnd, WM_KEYDOWN, VK_RETURN, 0);
-                        SendMessageW(hwnd, WM_KEYUP, VK_RETURN, 0);
+                        SendMessageW(data.hwnd, WM_KEYDOWN, VK_RETURN, 0);
+                        SendMessageW(data.hwnd, WM_KEYUP, VK_RETURN, 0);
                     }
                 }
                 return true;
             }
-            // 解决可能获取到隐藏的登录确认框的问题
-            auto style = GetWindowLongW(hwnd, GWL_STYLE);
-            if (!(style & WS_MAXIMIZEBOX)) {
-                return true;
-            }
-            static_cast<Derived*>(this)->OnLogin(hwnd);
+            static_cast<Derived*>(this)->OnLogin(data.hwnd);
             return false;
         });
     }

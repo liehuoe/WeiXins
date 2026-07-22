@@ -15,6 +15,7 @@ int main() {
         if (LoginWindow::IsOpen()) {
             return;
         }
+        weixin::CleanLoginFiles();
         cxxui::Exit();
     });
 }

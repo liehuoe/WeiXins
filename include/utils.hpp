@@ -2,6 +2,12 @@
 
 #include <cxxui/core/detail/library.hpp>
 
+#ifdef _DEBUG
+    #define Debug(...) fprintf(stderr, "DEBUG: " __VA_ARGS__)
+#else
+    #define Debug(...)
+#endif
+
 /**
  * @brief 获取窗口句柄的DPI
  *
@@ -30,7 +36,7 @@ inline UINT GetDpi(HWND hwnd) {
  * @param str 要查找的字符串
  * @param end 要匹配的子字符串
  */
-inline bool EndWith(std::string_view str, std::string_view end) {
+inline bool EndWith(std::wstring_view str, std::wstring_view end) {
     return str.size() >= end.size() && str.substr(str.size() - end.size()) == end;
 }
 
@@ -57,8 +63,7 @@ inline void SetForeground(HWND hwnd) {
 }
 
 /**
- * @brief
- *
+ * @brief 为每个类定义全局单实例
  */
 template <typename Derived>
 class Singleton {
@@ -68,4 +73,3 @@ protected:
         return instance;
     }
 };
-

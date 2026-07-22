@@ -19,8 +19,8 @@ private:
     }
     CXXUI_WIN_EVENT(LoginWindow)
     void OnClosed() {
-        win_ = nullptr;
         Base::OnClosed();
+        win_ = nullptr;
     }
     CXXUI_WEB_EVENT(LoginWindow)
     void OnWebCreated(std::optional<cxxui::WindowError> err) {

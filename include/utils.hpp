@@ -3,7 +3,7 @@
 #include <cxxui/core/detail/library.hpp>
 
 #ifdef _DEBUG
-    #define Debug(...) fprintf(stderr, "DEBUG: " __VA_ARGS__)
+    #define Debug(...) fprintf(stderr, __VA_ARGS__)
 #else
     #define Debug(...)
 #endif

@@ -27,18 +27,6 @@ protected:
 
 public:
     /**
-     * @brief 启动微信
-     * @return bool 是否启动成功
-     */
-    bool Start() noexcept {
-        if (!Base::Start()) {
-            return false;
-        }
-        int size = static_cast<int>(Base::GetAllObjs().size());
-        App::GetInstance().SetHotKey(size, MOD_CONTROL | MOD_SHIFT, '0' + size);
-        return true;
-    }
-    /**
      * @brief 获取微信主窗口句柄
      *
      * @return HWND
@@ -56,6 +44,8 @@ protected:
     friend class LoginChecker<Derived>;
     /** 微信登录成功时触发 */
     void OnLogin(HWND hwnd) {
+        int size = static_cast<int>(Base::GetAllObjs().size());
+        App::GetInstance().SetHotKey(size, MOD_CONTROL | MOD_SHIFT, '0' + size);
         hwnd_ = hwnd;
         tray_ = weixin::GetTrayWindow(this->GetPid());
         constexpr DWORD flags = WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS;

@@ -52,7 +52,7 @@ protected:
 
             Debug("exited: %d, ", data.exited);
             Debug("hwnd: %p, ", static_cast<void*>(data.hwnd));
-            Debug("jump: %d, ", data.jump);
+            Debug("jump: %d\n", data.jump);
             // 微信已经退出，结束 timer
             if (data.exited) {
                 return false;
@@ -64,9 +64,9 @@ protected:
             if (!(GetWindowLongW(data.hwnd, GWL_STYLE) & WS_MAXIMIZEBOX)) {
                 // 通过模拟按下enter键跳过登录确认窗口
                 if (!jump && IsWindowVisible(data.hwnd)) {
-                    jump = true;
                     // 新账号不会创建头像目录，也不需要模拟按键
                     if (std::filesystem::exists(GetHeadImgDir())) {
+                        jump = true;
                         SendMessageW(data.hwnd, WM_KEYDOWN, VK_RETURN, 0);
                         SendMessageW(data.hwnd, WM_KEYUP, VK_RETURN, 0);
                     }

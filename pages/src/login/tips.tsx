@@ -10,7 +10,9 @@ const [tips, setTips] = createSignal<Tip[]>([]);
 
 function Tips(props: { class?: string }) {
   return (
-    <div class={`z-101 gap-1 fixed left-1 right-1 flex-col items-center ${props.class}`}>
+    <div
+      class={`z-101 gap-1 fixed left-1 right-1 flex-col items-center ${props.class}`}
+    >
       <TransitionGroup
         onEnter={(el, done) => {
           const a = el.animate(
@@ -41,10 +43,7 @@ function Tips(props: { class?: string }) {
       >
         <For each={tips()}>
           {(tip) => (
-            <div
-              class="gap-1 px-2 py-1 border-rd-2 shadow-dark shadow-md bg-gray-100 items-center
-              dark:shadow-black dark:bg-dark-100 dark:color-light"
-            >
+            <div class="gap-1 px-2 py-1 border-rd-2 shadow-black shadow-md bg-back/80 items-center">
               <Show when={tip.icon}>
                 <div class={`text-lg ${tip.icon}`} />
               </Show>

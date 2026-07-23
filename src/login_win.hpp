@@ -11,6 +11,9 @@
 class LoginWindow : public DarkWindow<LoginWindow> {
     using Base = DarkWindow<LoginWindow>;
 
+public:
+    ~LoginWindow() { SaveData(true); }
+
 private:
     LoginWindow()
         : Base(cxxui::WindowOptions{}.SetTitle("微信多开助手").SetWidth(300).SetHeight(400)) {
@@ -21,6 +24,24 @@ private:
     void OnClosed() {
         Base::OnClosed();
         win_ = nullptr;
+    }
+    std::optional<LRESULT> OnWin32Msg(UINT msg, WPARAM wp, LPARAM lp) {
+        switch (msg) {
+            case WM_SIZE: {
+                if (!this->ctrl_) {
+                    break;
+                }
+                if (wp == SIZE_MAXIMIZED) {
+                    RunJs("window.onMaximize(true)");
+                } else if (wp == SIZE_RESTORED) {
+                    RunJs("window.onMaximize(false)");
+                }
+                break;
+            }
+            default:
+                break;
+        }
+        return Base::OnWin32Msg(msg, wp, lp);
     }
     CXXUI_WEB_EVENT(LoginWindow)
     void OnWebCreated(std::optional<cxxui::WindowError> err) {
@@ -40,7 +61,29 @@ private:
     }
     */
     cxxui::json data_;
-    void SaveData() {
+    bool data_modified_ = false;
+    void LoadData() {
+        if (data_modified_) {
+            return;
+        }
+        auto data = cxxui::json::parse(std::ifstream{Config::GetInstance().GetCfgPath()});
+        if (data.is_array()) {
+            data_["user"] = data;
+        } else if (data.is_object()) {
+            data_ = data;
+        } else {
+            data_["user"] = cxxui::json::array();
+        }
+    }
+    void SaveData(bool force = false) {
+        if (!force) {
+            data_modified_ = true;
+            return;
+        }
+        if (!data_modified_) {
+            return;
+        }
+        data_modified_ = false;
         namespace fs = std::filesystem;
         const fs::path& app_dir = Config::GetInstance().GetUserDir();
         if (!fs::exists(app_dir)) {
@@ -50,7 +93,11 @@ private:
     }
     void InitJsMsg() {
         map_.bind("/app/version", OnAppVersion);
+        map_.bind("/app/close", [this](cxxui::json& arg) { return OnAppClose(arg); });
+        map_.bind("/app/maximize", [this](cxxui::json& arg) { return OnAppMaximize(arg); });
+        map_.bind("/app/minimize", [this](cxxui::json& arg) { return OnAppMinimize(arg); });
         map_.bind("/app/drag", [this](cxxui::json& arg) { return OnAppDrag(arg); });
+        map_.bind("/app/pin", [this](cxxui::json& arg) { return OnAppPin(arg); });
         map_.bind("/user/get", [this](cxxui::json& arg) { return OnUserGet(arg); });
         map_.bind("/user/getDirs", OnUserGetDirs);
         map_.bind("/user/login", [this](cxxui::json& arg) { return OnUserLogin(arg); });
@@ -65,15 +112,51 @@ private:
     ret: string 版本号
     */
     static cxxui::json OnAppVersion(cxxui::json&) { return PROJECT_VERSION; }
-    /*
-    触发窗口拖拽
-    arg: null
-    ret: null
-    */
+    cxxui::json OnAppClose(cxxui::json&) {
+        Close();
+        return nullptr;
+    }
+    cxxui::json OnAppMaximize(cxxui::json&) {
+        bool is_max = IsZoomed(this->hwnd_);
+        if (is_max) {
+            ShowWindow(this->hwnd_, SW_RESTORE);
+        } else {
+            ShowWindow(this->hwnd_, SW_MAXIMIZE);
+        }
+        return nullptr;
+    }
+    cxxui::json OnAppMinimize(cxxui::json&) {
+        ShowWindow(this->hwnd_, SW_MINIMIZE);
+        return nullptr;
+    }
     cxxui::json OnAppDrag(cxxui::json&) {
         ReleaseCapture();
         PostMessageW(GetHandle(), WM_SYSCOMMAND, SC_MOVE + HTCAPTION, 0);
         return nullptr;
+    }
+    /*
+    置顶窗口
+    arg: { pin?: boolean }
+    ret: boolean 置顶状态
+    */
+    cxxui::json OnAppPin(cxxui::json& arg) {
+        bool pin;
+        if (!arg.contains("pin")) {
+            LoadData();
+            pin = data_.value("pin", false);
+        } else {
+            pin = arg.value("pin", false);
+            data_["pin"] = pin;
+            SaveData();
+        }
+        SetWindowPos(this->GetHandle(),
+                     pin ? HWND_TOPMOST : HWND_NOTOPMOST,
+                     0,
+                     0,
+                     0,
+                     0,
+                     SWP_NOMOVE | SWP_NOSIZE);
+        return pin;
     }
     /*
     获取账号列表
@@ -88,13 +171,8 @@ private:
         }
     */
     cxxui::json OnUserGet(cxxui::json&) {
-        auto data = cxxui::json::parse(std::ifstream{Config::GetInstance().GetCfgPath()});
-        if (data.is_array()) {
-            data_["user"] = data;
-        } else {
-            data_ = data;
-        }
-        return data;
+        LoadData();
+        return data_;
     }
     /*
     获取已经登录的账号

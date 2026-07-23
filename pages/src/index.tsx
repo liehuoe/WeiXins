@@ -11,6 +11,7 @@ document.addEventListener("dragover", (e) => {
     e.dataTransfer.dropEffect = "none";
   }
 });
+document.addEventListener("contextmenu", (e) => e.preventDefault());
 
 const route = { login };
 

@@ -162,20 +162,12 @@ export class Data {
   }
   setSelected(index: number, value: Boolean) {
     this._selected[1](index, value);
-    if (this.delayTimer) {
-      return;
-    }
-    // 延迟发送请求，避免短时间内多次修改导致的重复请求
-    this.delayTimer = window.setTimeout(() => {
-      this.delayTimer = null;
-      api.user.setMulti({
-        selected: this.selected
-          .map((item, i) => (item ? i : -1))
-          .filter((i) => i != -1),
-      });
-    }, 1000);
+    api.user.setMulti({
+      selected: this.selected
+        .map((item, i) => (item ? i : -1))
+        .filter((i) => i != -1),
+    });
   }
-  delayTimer: number | null = null;
   /** 移动账号 */
   async move(from: number, to: number) {
     const users = [...(this.users || [])];

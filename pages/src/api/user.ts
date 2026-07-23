@@ -14,13 +14,7 @@ class Api extends ApiBase implements User {
     isMulti?: Boolean;
     selected?: number[];
   }> {
-    const data = await this.send();
-    if (Array.isArray(data)) {
-      // v2.0.0 以前(不含)
-      return { user: data, isMulti: false, selected: [] };
-    } else {
-      return data;
-    }
+    return await this.send();
   }
   @Get("获取已经登录的账号") async getDirs(): Promise<User["dir"][]> {
     return await this.send();

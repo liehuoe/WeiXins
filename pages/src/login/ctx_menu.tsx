@@ -36,18 +36,15 @@ function onClickOutside() {
 }
 function ContextMenu(props: { when?: boolean; children: any }) {
   onMount(() => {
-    document.addEventListener("contextmenu", menu.show);
     document.addEventListener("click", onClickOutside);
   });
   onCleanup(() => {
-    document.removeEventListener("contextmenu", menu.show);
     document.removeEventListener("click", onClickOutside);
   });
   return (
     <div
       ref={(el) => (menuDom = el)}
-      class="z-102 border-rd-2 py-1 bg-gray-100 fixed shadow-dark shadow-lg flex-col
-      dark:shadow-black dark:bg-dark-100 dark:color-light"
+      class="z-102 border-rd-2 py-1 bg-back fixed shadow-black shadow-lg flex-col"
       style={{
         left: (menuPos()?.x || 0) + "px",
         top: (menuPos()?.y || 0) + "px",
@@ -69,8 +66,7 @@ function MenuItem(props: {
 }) {
   return (
     <div
-      class="gap-1 px-2 py-1 hover:bg-gray-300 whitespace-nowrap items-center
-      dark:hover:bg-dark-300"
+      class="gap-1 px-2 py-1 hover:bg-fore/10 whitespace-nowrap items-center"
       onclick={props.onClick}
     >
       <div class={`text-lg ${props.icon}`} />

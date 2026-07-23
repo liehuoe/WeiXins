@@ -10,17 +10,33 @@ img {
   -webkit-user-drag: none;
 }
 
+/** 滚动条样式 */
 *::-webkit-scrollbar {
   width: 5px;
   height: 5px;
 }
+
 *::-webkit-scrollbar-track {
   background: transparent;
 }
+
 *::-webkit-scrollbar-thumb {
   background: #666;
   border-radius: 3px;
 }
+
 *::-webkit-scrollbar-thumb:hover {
   background: #999;
+}
+
+:root {
+  --fore-color: 0 0 0;
+  --back-color: 255 255 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fore-color: 255 255 255;
+    --back-color: 36 36 36;
+  }
 }

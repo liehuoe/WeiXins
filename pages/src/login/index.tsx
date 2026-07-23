@@ -1,6 +1,5 @@
 import { createSignal, For, onMount, Show } from "solid-js";
 import { Transition, TransitionGroup } from "solid-transition-group";
-import { EmptyText } from "./empty_text";
 import { Icon } from "./icon";
 import { EnableFocusList } from "./focus_list";
 import { Data, Status, type UserData } from "./data";
@@ -8,6 +7,7 @@ import { ContextMenu, MenuItem, menu } from "./ctx_menu";
 import { Tips } from "./tips";
 import { About } from "./about";
 import { api } from "../api";
+import { SystemBtn, SystemBtns } from "../components/system_btns";
 
 export default function Login() {
   const data = new Data();
@@ -107,7 +107,7 @@ export default function Login() {
       <Item
         ref={(el) => data.userDoms.push(el)}
         class={`${props.user.login ? "bg-yellow-300" : "bg-green"}
-          shadow-dark shadow-2xl hover:shadow-lg hover:bg-op-70 cursor-pointer dark:shadow-black`}
+          shadow-black shadow-2xl hover:shadow-lg hover:bg-op-70 cursor-pointer`}
         onClick={() => data.login(props.user, props.index)}
         onContextMenu={(e) => {
           e.preventDefault();
@@ -247,36 +247,57 @@ export default function Login() {
     }
     await api.app.drag();
   }
+  const [isPin, setIsPin] = createSignal(false);
+  onMount(async () => setIsPin(await api.app.pin({})));
   return (
     <>
+      <div class="justify-end" onmousedown={onDragWindow}>
+        <SystemBtn
+          title="是否置顶"
+          icon={`i-mdi-pin-outline ${isPin() && "color-green"}`}
+          onclick={async () => setIsPin(await api.app.pin({ pin: !isPin() }))}
+        />
+        <SystemBtns />
+      </div>
       <div
         class="z-2 p-1 gap-1 flex-col h-full overflow-y-auto"
-        oncontextmenu={() => setSelUser(null)}
+        oncontextmenu={(e) => {
+          setSelUser(null);
+          menu.show(e);
+        }}
         onmousedown={onDragWindow}
       >
-        <TransitionGroup
-          onEnter={(el, done) => {
-            const a = el.animate([{ opacity: 0 }, { opacity: 1 }], {
-              duration: 300,
-            });
-            a.finished.then(done);
-          }}
-          onExit={(_, done) => done()}
+        <Show
+          when={data.users?.length}
+          fallback={
+            <div
+              class="h-full flex-center text-2xl text-fore/50"
+              onmousedown={onDragWindow}
+            >
+              {data.users ? "单击右键添加账号" : "正在加载数据"}
+            </div>
+          }
         >
-          <For each={data.users}>
-            {(user, index) => <ReadItem user={user} index={index()} />}
-          </For>
-        </TransitionGroup>
+          <TransitionGroup
+            onEnter={(el, done) => {
+              const a = el.animate([{ opacity: 0 }, { opacity: 1 }], {
+                duration: 300,
+              });
+              a.finished.then(done);
+            }}
+            onExit={(_, done) => done()}
+          >
+            <For each={data.users}>
+              {(user, index) => <ReadItem user={user} index={index()} />}
+            </For>
+          </TransitionGroup>
+        </Show>
       </div>
-      <Show when={!data.users?.length}>
-        <EmptyText>
-          {data.users ? "单击右键添加账号" : "正在加载数据"}
-        </EmptyText>
-      </Show>
       <Show when={data.isMulti}>
         <div class="p-1">
           <Item
-            class={`${data.selected.some((v, i) => v && !data.users![i].login) ? "bg-blue" : "bg-blue-1"} h-10 shadow-dark shadow-2xl hover:shadow-lg hover:bg-op-70 cursor-pointer dark:shadow-black flex justify-center`}
+            class={`h-10 shadow-black shadow-2xl hover:shadow-lg hover:bg-op-70 cursor-pointer justify-center
+              ${data.selected.some((v, i) => v && !data.users![i].login) ? "bg-blue" : "bg-blue/50"}`}
             onClick={() => data.multiLogin()}
           >
             <strong class="text-lg">一键登录</strong>

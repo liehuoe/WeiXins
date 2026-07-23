@@ -52,7 +52,7 @@ protected:
         Base::OnLogin(hwnd);
 
         auto dir_path = Config::GetInstance().GetUserDir() / dir_;
-        weixin::CopyLoginFiles<false>(dir_path);  // 更新登录文件
+        weixin::CopyLoginFiles(dir_path, false);  // 更新登录文件
         weixin::CopyHeadImg(dir_path);            // 更新头像
         UpdateTitle();                            // 更新任务栏标题
         UpdateIcon();                             // 更新任务栏图标

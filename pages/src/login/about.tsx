@@ -44,7 +44,7 @@ export function About(props: { when: boolean; onClose: () => void }) {
     >
       <Show when={props.when}>
         <div
-          class="z-100 bg-black/80 fixed inset-0 flex-col items-center justify-center text-white"
+          class="z-100 bg-black/80 fixed inset-0 flex-col flex-center text-white"
           onclick={() => props.onClose()}
         >
           <div>打赏作者</div>

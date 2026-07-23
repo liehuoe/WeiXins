@@ -80,11 +80,10 @@ inline void SafeRemove(const std::filesystem::path& dir, std::string_view file) 
 /**
  * @brief 复制登录配置文件到微信/程序
  *
- * @tparam to_weixin true: 从 dir 更新到微信, false: 从微信更新到 dir
+ * @param to_weixin true: 从 dir 更新到微信, false: 从微信更新到 dir
  * @param bak_dir 登录配置文件备份的目录
  */
-template <bool to_weixin = true>
-void CopyLoginFiles(const std::filesystem::path& bak_dir) {
+inline void CopyLoginFiles(const std::filesystem::path& bak_dir, bool to_weixin) {
     namespace fs = std::filesystem;
     if (!fs::exists(bak_dir)) {
         fs::create_directories(bak_dir);
@@ -94,7 +93,7 @@ void CopyLoginFiles(const std::filesystem::path& bak_dir) {
         return;
     }
     fs::path src_dir, dst_dir;
-    if constexpr (to_weixin) {
+    if (to_weixin) {
         src_dir = bak_dir;
         dst_dir = wx_dir;
     } else {
@@ -108,7 +107,7 @@ void CopyLoginFiles(const std::filesystem::path& bak_dir) {
         detail::SafeRemove(dst_dir, file);
         std::error_code ec;
         if (fs::exists(dst)) {
-            if constexpr (to_weixin) {
+            if (to_weixin) {
                 detail::SafeRemove(dst_dir, file);
             } else {
                 fs::remove(dst, ec);

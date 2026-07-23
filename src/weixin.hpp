@@ -71,7 +71,7 @@ private:
     static void CreateFirst() noexcept {
         namespace fs = std::filesystem;
         // 复制登录文件到微信
-        weixin::CopyLoginFiles<true>(Config::GetInstance().GetUserDir() / waiting_dirs_[0]);
+        weixin::CopyLoginFiles(Config::GetInstance().GetUserDir() / waiting_dirs_[0], true);
         // 删除微信缓存的头像目录
         fs::path head_imgs = weixin::GetHeadImgDir();
         if (fs::exists(head_imgs)) {

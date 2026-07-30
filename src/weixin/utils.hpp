@@ -155,13 +155,20 @@ inline std::string_view kHeadImgName = "logo.jpg";
 inline void CopyHeadImg(const std::filesystem::path& bak_dir) {
     namespace fs = std::filesystem;
     auto GetFirstFile = [](const fs::path& dir, std::string_view exclude = {}) {
+        fs::path file;
+        FILETIME create_time{};
         for (const auto& entry : fs::directory_iterator(dir)) {
             if (!exclude.empty() && entry.path().filename() == exclude) {
                 continue;
             }
-            return entry.path();
+            WIN32_FILE_ATTRIBUTE_DATA fad{};
+            GetFileAttributesExW(entry.path().c_str(), GetFileExInfoStandard, &fad);
+            if (CompareFileTime(&fad.ftCreationTime, &create_time) >= 0) {
+                file = entry.path();
+                create_time = fad.ftCreationTime;
+            }
         }
-        return fs::path{};
+        return file;
     };
     // 更新微信头像
     fs::path logo_dir = GetFirstFile(GetHeadImgDir(), "0");

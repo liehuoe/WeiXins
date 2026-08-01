@@ -154,8 +154,7 @@ protected:
     }
 
 private:
-    App()
-        : Base(cxxui::WindowOptions{}.SetParent(HWND_MESSAGE)) {}
+    App() { Base::Create(cxxui::WindowOptions{}.SetParent(HWND_MESSAGE)); }
 
     inline static RunningHandler running_handler_ = nullptr;
     inline static HotKeyHandler hotkey_handler_ = nullptr;

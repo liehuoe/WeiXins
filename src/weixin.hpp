@@ -82,7 +82,7 @@ private:
         if (!wx->Start()) {
             delete wx;
             waiting_dirs_.clear();  // 清空后续登录
-            MessageBoxW(nullptr, L"微信启动失败", L"微信多开助手", MB_OK | MB_ICONERROR);
+            MessageBoxW(nullptr, L"微信启动失败", PROJECT_DESC_W, MB_OK | MB_ICONERROR);
             return;
         }
         wx->CheckLogin();

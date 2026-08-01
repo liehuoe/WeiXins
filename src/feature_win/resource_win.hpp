@@ -20,9 +20,6 @@ template <typename Derived>
 class ResourceWindow : public cxxui::WebWindow<Derived> {
     using Base = cxxui::WebWindow<Derived>;
 
-public:
-    using Base::Base;
-
 protected:
     CXXUI_WEB_EVENT(Derived)
     void OnWebCreated(std::optional<cxxui::WindowError> err) {

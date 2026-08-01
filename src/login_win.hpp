@@ -15,11 +15,6 @@ public:
     ~LoginWindow() { SaveData(true); }
 
 private:
-    LoginWindow()
-        : Base(cxxui::WindowOptions{}.SetTitle("微信多开助手").SetWidth(300).SetHeight(400)) {
-        SetIcon(IDI_LOGO);
-        WeiXin::SetCloseHandler(Refreseh);
-    }
     CXXUI_WIN_EVENT(LoginWindow)
     void OnClosed() {
         Base::OnClosed();
@@ -48,7 +43,6 @@ private:
         Base::OnWebCreated(err);
         InitJsMsg();
         SetUrl(PAGE(login));
-        SetForeground(this->hwnd_);
     }
     /** 处理登录窗口下发的请求 */
 private:
@@ -200,7 +194,7 @@ private:
         for (const auto& item : arg) {
             WeiXin::Create(item.value("dir", ""));
         }
-        win_ = nullptr;
+        Close();
         return nullptr;
     }
     /*
@@ -300,11 +294,14 @@ private:
     /** 管理登录窗口，只打开一个登录窗口 */
 public:
     static void Open() {
-        if (win_) {
-            SetForeground(win_->GetHandle());
-        } else {
+        if (!win_) {
             win_ = std::unique_ptr<LoginWindow>{new LoginWindow{}};
+            win_->Create(
+                cxxui::WindowOptions{}.SetTitle(PROJECT_DESC).SetWidth(300).SetHeight(400));
+            win_->SetIcon(IDI_LOGO);
+            WeiXin::SetCloseHandler(Refreseh);
         }
+        SetForeground(win_->hwnd_);
     }
     static void Refreseh() noexcept {
         if (win_) {

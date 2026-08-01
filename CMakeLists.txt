@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.14)
 
-project(WeiXins VERSION 2.3.0 LANGUAGES CXX)
+project(WeiXins
+    VERSION 2.3.0
+    DESCRIPTION "微信多开助手"
+    LANGUAGES CXX
+)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 

@@ -9,8 +9,8 @@ class DarkWindow : public ResourceWindow<Derived> {
     using Base = ResourceWindow<Derived>;
 
 public:
-    DarkWindow(cxxui::WindowOptions opts)
-        : Base(std::move(opts.SetWin32Style(WS_OVERLAPPED | WS_SIZEBOX | WS_MAXIMIZEBOX))) {
+    void Create(cxxui::WindowOptions opts) {
+        Base::Create(std::move(opts.SetWin32Style(WS_OVERLAPPED | WS_SIZEBOX | WS_MAXIMIZEBOX)));
         UseDarkMode<true>();
     }
 
@@ -36,6 +36,9 @@ protected:
                     params->rgrc[0].top -= GetTitleHeight();
                 }
                 break;
+            }
+            case WM_NCACTIVATE: {
+                return TRUE;
             }
             default:
                 break;

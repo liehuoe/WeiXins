@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 
 project(WeiXins
-    VERSION 2.3.0
+    VERSION 2.3.1
     DESCRIPTION "微信多开助手"
     LANGUAGES CXX
 )

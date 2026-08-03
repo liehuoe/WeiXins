@@ -155,6 +155,9 @@ inline void CopyHeadImg(const std::filesystem::path& bak_dir) {
     namespace fs = std::filesystem;
     auto GetFirstFile = [](const fs::path& dir, std::string_view exclude = {}) {
         fs::path file;
+        if (!fs::exists(dir)) {
+            return file;
+        }
         FILETIME create_time{};
         for (const auto& entry : fs::directory_iterator(dir)) {
             if (!exclude.empty() && entry.path().filename() == exclude) {

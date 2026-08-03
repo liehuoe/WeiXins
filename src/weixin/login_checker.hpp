@@ -21,11 +21,10 @@ protected:
         timer_ = App::GetInstance().StartTimer(1000, [this, jump = false]() mutable -> bool {
             struct EnumData {
                 DWORD pid;
-                bool exited;  // 判断进程是否已经退出
-                HWND hwnd;    // 查找到的主窗口句柄
-                bool& jump;   // 是否已经模拟按键跳过登录确认框
+                HWND hwnd;   // 查找到的主窗口句柄
+                bool& jump;  // 是否已经模拟按键跳过登录确认框
             };
-            EnumData data{this->GetPid(), true, nullptr, jump};
+            EnumData data{this->GetPid(), nullptr, jump};
             EnumWindows(
                 [](HWND hwnd, LPARAM lp) -> BOOL {
                     EnumData* pdata = reinterpret_cast<EnumData*>(lp);
@@ -34,8 +33,6 @@ protected:
                     if (pid != pdata->pid) {
                         return TRUE;
                     }
-                    pdata->exited = false;
-
                     wchar_t name[256], title[256];
                     GetClassNameW(hwnd, name, sizeof(name));
                     if (!EndWith(name, L"QWindowIcon")) {
@@ -50,11 +47,10 @@ protected:
                 },
                 reinterpret_cast<LPARAM>(&data));
 
-            Debug("exited: %d, ", data.exited);
             Debug("hwnd: %p, ", static_cast<void*>(data.hwnd));
             Debug("jump: %d\n", data.jump);
             // 微信已经退出，结束 timer
-            if (data.exited) {
+            if (WaitForSingleObject(this->GetHandle(), 0) != WAIT_TIMEOUT) {
                 return false;
             }
             // 微信正在登录, 继续 timer 检测

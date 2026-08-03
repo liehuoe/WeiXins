@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fstream>
 #include <filesystem>
 #include <windows.h>
 #include <Shlobj.h>
@@ -14,13 +15,65 @@ namespace weixin {
  * @return std::filesystem::path 获取失败返回空路径
  */
 inline std::filesystem::path GetProfileDir() noexcept {
-    std::filesystem::path path;
-    PWSTR profile_dir = nullptr;
-    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Profile, 0, nullptr, &profile_dir))) {
-        path = std::filesystem::path{profile_dir} / "Documents/xwechat_files/all_users";
-        CoTaskMemFree(profile_dir);
+    namespace fs = std::filesystem;
+    static fs::path result;
+    if (!result.empty()) {
+        return result;
     }
-    return path;
+    // 获取默认位置
+    auto GetDefaultPath = []() {
+        fs::path path;
+        PWSTR profile_dir = nullptr;
+        if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Profile, 0, nullptr, &profile_dir))) {
+            path = fs::path{profile_dir} / L"Documents/xwechat_files/all_users";
+            CoTaskMemFree(profile_dir);
+        }
+        result = path;
+        return result;
+    };
+    // 获取存储位置
+    PWSTR roaming_dir = nullptr;
+    fs::path cfg_dir;
+    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &roaming_dir))) {
+        cfg_dir = fs::path{roaming_dir} / L"Tencent/xwechat/config";
+        CoTaskMemFree(roaming_dir);
+    }
+    if (!fs::exists(cfg_dir)) {
+        return GetDefaultPath();
+    }
+    for (const auto& entry : fs::directory_iterator(cfg_dir)) {
+        if (!EndWith(entry.path().c_str(), L".ini")) {
+            continue;
+        }
+        // 读取文件内容
+        std::ifstream file{entry.path(), std::ios::binary | std::ios::ate};
+        if (!file.is_open()) {
+            continue;
+        }
+        std::streamsize size = file.tellg();
+        file.seekg(0, std::ios::beg);
+        std::string buf(size, '\0');
+        file.read(buf.data(), size);
+        if (buf.empty()) {
+            continue;
+        }
+        if (buf.back() == '\n') {
+            buf.pop_back();
+        }
+        if (buf.back() == '\r') {
+            buf.pop_back();
+        }
+        // 确认存储位置
+        if (buf == "MyDocument:") {
+            return GetDefaultPath();
+        }
+        auto path = fs::path{buf} / L"xwechat_files/all_users";
+        if (fs::exists(path)) {
+            result = path;
+            return result;
+        }
+    }
+    return fs::path{};
 }
 
 /**

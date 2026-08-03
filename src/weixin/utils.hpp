@@ -104,7 +104,6 @@ inline void CopyLoginFiles(const std::filesystem::path& bak_dir, bool to_weixin)
     for (const auto file : kFileList) {
         fs::path src = src_dir / file;
         fs::path dst = dst_dir / file;
-        detail::SafeRemove(dst_dir, file);
         std::error_code ec;
         if (fs::exists(dst)) {
             if (to_weixin) {
